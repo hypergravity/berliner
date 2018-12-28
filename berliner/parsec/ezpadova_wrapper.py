@@ -16,6 +16,7 @@ from ezpadova.parsec import get_one_isochrone, get_photometry_list, \
     get_t_isochrones, get_Z_isochrones
 from ezpadova.simpletable import SimpleTable
 from .isochrone import Isochrone
+from astropy.table import Table
 from collections import OrderedDict
 
 
@@ -76,6 +77,6 @@ def get_one_isochrone_silently(*args, silent=True, **kwargs):
 
     # convert to .isochrone.Isochrone type
     try:
-        return Isochrone(r.data, meta=OrderedDict())
+        return Table(r.data)
     except Exception:
-        return Isochrone(r.columns, meta=r.meta)
+        return Table(r.columns, meta=r.meta)

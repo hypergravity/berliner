@@ -77,7 +77,7 @@ def __find_valid_grid(grid_feh, grid_logt, Zsun=Zsun):
 
 
 def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
-                       Zsun=Zsun, silent=False, n_jobs=8, verbose=10,
+                       Zsun=Zsun, silent=True, n_jobs=8, verbose=10,
                        **kwargs):
     """ get a list of isochrones using EZPADOVA
 
@@ -110,15 +110,21 @@ def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
 
     # construct list
     grid_list = []
+    isoc_lgage = []
+    isoc_feh = []
     for grid_feh_ in vgrid_feh:
         for grid_logt_ in vgrid_logt:
-            grid_list.append((10.**grid_logt_, 10.**grid_feh_*Zsun))
+            grid_list.append((10. ** grid_logt_, 10. ** grid_feh_ * Zsun))
+            isoc_lgage.append(grid_logt_)
+            isoc_feh.append(grid_feh_)
+    isoc_lgage = np.array(isoc_lgage)
+    isoc_feh = np.array(isoc_feh)
 
     print("@Cham: you have requested for %s isochrones!" % len(grid_list))
     print("==================================================================")
 
     # get isochrones
-    if n_jobs > 1:
+    if n_jobs > 1 or n_jobs == -1:
         # get isochrones in parallel
         isoc_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
             delayed(ezpadova_wrapper.get_one_isochrone_silently)(
@@ -134,18 +140,19 @@ def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
                   % (np.log10(grid_list_[0]), np.log10(grid_list_[1]/Zsun),
                      grid_list_[0], grid_list_[1],
                      i+1, len(grid_list)))
-            isoc_list.append(Table(ezpadova_wrapper.get_one_isochrone_silently(
+            isoc_list.append(ezpadova_wrapper.get_one_isochrone_silently(
                 grid_list_[0], grid_list_[1], model=model, phot=phot,
-                silent=silent, **kwargs).data))
+                silent=silent, **kwargs))
 
     # verbose
     print("@Cham: got all requested isochrones!")
-    print("------------------------------------------------------------------")
+    print("==================================================================")
     print("@Cham: colnames are:")
     print(isoc_list[0].colnames)
-    print("------------------------------------------------------------------")
+    print("==================================================================")
 
-    return vgrid_feh, vgrid_logt, grid_list, isoc_list
+    # return vgrid_feh, vgrid_logt, grid_list, isoc_list
+    return np.array(isoc_lgage), np.array(isoc_feh), isoc_list
 
 
 # useless & deprecated

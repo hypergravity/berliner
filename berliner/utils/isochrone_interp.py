@@ -11,10 +11,9 @@ from scipy.interpolate import interp1d
 
 
 def isoc_interp(isoc,
-                restrictions=(('logG', 0.01), ('M_act', 0.01)),
-                doubling=1.0,
-                mode='linear',
-                interp_config=(('logG', 'linear'), ('J', 'linear')),
+                restrictions=(('logG', 0.01), ('logTe', 0.01)),
+                sampling_factor=1.0, sampling_mode='linear',
+                interp_config=(('logG', 'linear'), ('logTe', 'linear')),
                 M_ini='M_ini'):
     """ isochrone interpolation that doesn't lose any structures
 
@@ -24,9 +23,9 @@ def isoc_interp(isoc,
         isochrone table
     restrictions: tuple
         (colname, maxstep) pairs
-    doubling: float
-        simpling doubling factor
-    mode: 'linear' | 'random'
+    sampling_factor: float
+        sampling doubling factor
+    sampling_mode: 'linear' | 'random'
         sampling scheme
     interp_config: tuple
         (colname, kind) pairs
@@ -53,13 +52,13 @@ def isoc_interp(isoc,
         est_diff = np.diff(isoc[est_colname].data)
         # n_interp_points = np.max(np.array([n_interp_points, (
         #     np.ceil(np.abs(est_diff) / est_step)) * doubling + 1]), axis=0)
-        n_interp_points_ = np.ceil(np.abs(est_diff) / est_step * doubling) + 1
+        n_interp_points_ = np.ceil(np.abs(est_diff) / est_step * sampling_factor) + 1
         n_interp_points = np.where(n_interp_points > n_interp_points_,
                                    n_interp_points, n_interp_points_)
     n_interp_points[-1] += 1
 
     # sampling scheme {linear|random}
-    if mode is 'linear':
+    if sampling_mode is 'linear':
         # linspace
         for i in range(n_row - 2):
             M_interp = np.hstack((M_interp, np.linspace(M[i], M[i + 1], n_interp_points[i])[:-1]))
@@ -67,7 +66,7 @@ def isoc_interp(isoc,
         i = n_row - 2
         M_interp = np.hstack(
             (M_interp, np.linspace(M[i], M[i + 1], n_interp_points[i])))
-    elif mode is 'random':
+    elif sampling_mode is 'random':
         # random
         for i in range(n_row - 2):
             M_interp = np.hstack(
