@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='berliner',
-    version='0.0.1',
+    version='0.0.2',
     author='Bo Zhang',
     author_email='bozhang@nao.cas.cn',
     description='Tools for stellar tracks & isochrones.',  # short description
@@ -25,5 +25,5 @@ setuptools.setup(
                  'ezpadova': 'ezpadova'},
     package_data={'ezpadova': ['*.json']},
     include_package_data = True,
-    requires=['numpy', 'scipy', 'emcee', 'regli']
+    requires=['numpy', 'scipy', 'emcee', 'regli', 'joblib']
 )
