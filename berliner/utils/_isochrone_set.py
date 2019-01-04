@@ -187,7 +187,7 @@ class IsochroneGrid:
         pass
 
     @staticmethod
-    def edges_to_centers(edges):
+    def centers_to_edges(centers):
         pass
 
 
