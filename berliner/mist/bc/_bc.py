@@ -74,6 +74,16 @@ mapdict = {
                     'Stromgren_v', 'Stromgren_b', 'Stromgren_y']}
 
 
+def combine_bctables(bctables):
+    result = bctables[0]
+    for _bctable in bctables[1:]:
+        for colname in _bctable:
+            if not colname in result.colnames:
+                result.add_column(_bctable[colname])
+
+    return result
+
+
 def read_bc(bc_fp):
     """ read a single BC file """
     with open(bc_fp, "r+") as f:
