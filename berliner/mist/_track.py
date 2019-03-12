@@ -110,4 +110,4 @@ def read_track(fp, colnames=None):
                 assert colname in t.colnames
             except AssertionError as ae:
                 raise(ae("{} not in track.colnames!!!".format(colname)))
-        return t
+        return t[colnames]

@@ -37,7 +37,7 @@ import joblib
 #isoc_lgage, isoc_feh, isoc_list = load(
 #     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise.dump")
 
-isoc_lgage, isoc_feh, isoc_list = joblib.oad(
+isoc_lgage, isoc_feh, isoc_list = joblib.load(
      "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise_hires.dump")
 
 #%%
@@ -92,6 +92,7 @@ flats = np.array([_.flatten() for _ in meshs]).T
 from regli import Regli
 r = Regli.init_from_flats(flats)
 r.set_values(np.log10(Hg).T.flatten())
+r.redundant = True
 joblib.dump(r, "/home/cham/PycharmProjects/berliner/berliner/data/regli_lnprior_teff_logg_g1.0.dump")
 
 # check
@@ -107,17 +108,19 @@ joblib.dump(r, "/home/cham/PycharmProjects/berliner/berliner/data/regli_lnprior_
 rcParams.update({"font.size":15})
 fig1 = figure(figsize=(14, 6))
 subplot(121)
-imshow(np.log10(H.T), cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto")
+imshow(np.log10(H.T), cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto", origin="lower")
 colorbar()
 xlim(*bin_teff[[-1,0]])
+ylim(*bin_logg[[-1,0]])
 xlabel("$T_{\\rm eff}$ [K]")
 ylabel("$\log{g}$ [dex]")
 title("superposed prior")
 
 subplot(122)
-imshow(np.log10(Hg).T, cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto")
+imshow(np.log10(Hg).T, cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto", origin="lower")
 colorbar()
 xlim(*bin_teff[[-1,0]])
+ylim(*bin_logg[[-1,0]])
 xlabel("$T_{\\rm eff}$ [K]")
 ylabel("$\log{g}$ [dex]")
 title("superposed prior [smoothed (1.0)]")
@@ -126,9 +129,10 @@ fig1.savefig("/home/cham/PycharmProjects/berliner/berliner/data/lnprior_teff_log
 
 # 2. single
 fig2 = figure(figsize=(7, 6))
-imshow(np.log10(Hg).T, cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto")
+imshow(np.log10(Hg).T, cmap=cm.jet, extent=(*bin_teff[[0, -1]], *bin_logg[[0, -1]]), aspect="auto",  origin="lower")
 colorbar()
 xlim(*bin_teff[[-1,0]])
+ylim(*bin_logg[[-1,0]])
 xlabel("$T_{\\rm eff}$ [K]")
 ylabel("$\log{g}$ [dex]")
 title("superposed prior [smoothed (1.0)]")
