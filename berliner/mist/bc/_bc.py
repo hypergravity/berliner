@@ -77,7 +77,7 @@ mapdict = {
 def combine_bctables(bctables):
     result = bctables[0]
     for _bctable in bctables[1:]:
-        for colname in _bctable:
+        for colname in _bctable.colnames:
             if not colname in result.colnames:
                 result.add_column(_bctable[colname])
 
