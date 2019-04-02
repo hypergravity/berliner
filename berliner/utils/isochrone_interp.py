@@ -93,7 +93,7 @@ def isoc_linterp(isoc,
                  restrictions=(('logG', 0.01), ('logTe', 0.01)),
                  sampling_factor=1.0, sampling_mode='linear',
                  interp_colnames=('logG', 'logTe'),
-                 M_ini='M_ini'):
+                 Mini='M_ini'):
     """ isochrone interpolation that doesn't lose any structures
 
     Parameters
@@ -108,7 +108,7 @@ def isoc_linterp(isoc,
         sampling scheme
     interp_config: tuple
         (colname, kind) pairs
-    M_ini: string
+    Mini: string
         the column name of the X in interpolation, default is 'M_ini'
 
     Returns
@@ -120,7 +120,7 @@ def isoc_linterp(isoc,
     n_row = len(isoc)
 
     # kick invalid values
-    M = isoc[M_ini].data
+    M = isoc[Mini].data
     M_diff = np.diff(M)
 
     # determine M_interp
@@ -137,7 +137,7 @@ def isoc_linterp(isoc,
     n_interp_points[-1] += 1
 
     # sampling scheme {linear|random}
-    if sampling_mode is 'linear':
+    if sampling_mode == 'linear':
         # linspace
         for i in range(n_row - 2):
             M_interp = np.hstack((M_interp, np.linspace(M[i], M[i + 1], n_interp_points[i])[:-1]))
@@ -145,7 +145,7 @@ def isoc_linterp(isoc,
         i = n_row - 2
         M_interp = np.hstack(
             (M_interp, np.linspace(M[i], M[i + 1], n_interp_points[i])))
-    elif sampling_mode is 'random':
+    elif sampling_mode == 'random':
         # random
         for i in range(n_row - 2):
             M_interp = np.hstack(
@@ -156,14 +156,14 @@ def isoc_linterp(isoc,
         M_interp = np.hstack(
             (M_interp, np.linspace(M[i], M[i + 1], n_interp_points[i])))
     else:
-        raise ValueError('@isoc_linterp: sampling_mode [{}] is not in {linear|random}!'.format(sampling_mode))
+        raise ValueError('@isoc_linterp: sampling_mode [{}] is not in (linear|random)!'.format(sampling_mode))
 
     # interpolation
     col_list = []
     for colname in interp_colnames:
         assert colname in isoc.colnames
         col_list.append(Column(
-            interp1d(isoc[M_ini], isoc[colname], kind="linear")(M_interp),
+            interp1d(isoc[Mini], isoc[colname], kind="linear")(M_interp),
             colname))
 
     # return interpolated isochrone table
