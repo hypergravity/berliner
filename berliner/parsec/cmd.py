@@ -128,7 +128,7 @@ class CMD:
         self.update()
 
         self.limit_mh = (-2.9,0.9)
-        self.limit_logage = (1.1, 10.13)
+        self.limit_logage = (1.1, 10.5)
         self.limit_z = (0.0000000000152, 0.1)
 
         self.photsys_file = self.cmdp.photsys_file
@@ -247,7 +247,7 @@ class CMD:
             isochrone list
         """
         # validate grid
-        if not self.valid_grid(grid_logage) or not self.valid_mh(grid_mh):
+        if not self.valid_logage(grid_logage) or not self.valid_mh(grid_mh):
             return None, None, None
 
         # for isochrone grid, parallellized via logage
