@@ -30,9 +30,12 @@ from astropy.table import Table, vstack
 from joblib import Parallel, delayed
 from scipy.interpolate import PchipInterpolator
 
-from . import ezpadova_wrapper
+from .cmd import CMD
 
 from .isochrone import Zsun, Zmin, Zmax, logtmax, logtmin
+
+
+cmd = CMD()
 
 
 def __find_valid_grid(grid_feh, grid_logt, Zsun=Zsun):
@@ -76,7 +79,7 @@ def __find_valid_grid(grid_feh, grid_logt, Zsun=Zsun):
     return vgrid_feh, vgrid_logt
 
 
-def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
+def get_isochrone_grid(grid_feh, grid_logt, photsys_file="2mass_spitzer",
                        Zsun=Zsun, silent=True, n_jobs=8, verbose=10,
                        **kwargs):
     """ get a list of isochrones using EZPADOVA
@@ -127,9 +130,9 @@ def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
     if n_jobs > 1 or n_jobs == -1:
         # get isochrones in parallel
         isoc_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
-            delayed(ezpadova_wrapper.get_one_isochrone_silently)(
-                grid_list_[0], grid_list_[1], silent=silent, model=model,
-                phot=phot, **kwargs)
+            delayed(cmd.get_one_isochrone)(
+                grid_list_[0], grid_list_[1], silent=silent,
+                photsys_file=photsys_file, **kwargs)
             for grid_list_ in grid_list)
     else:
         # get isochrones sequentially
@@ -140,9 +143,8 @@ def get_isochrone_grid(grid_feh, grid_logt, model="parsec12s", phot="sloan",
                   % (np.log10(grid_list_[0]), np.log10(grid_list_[1]/Zsun),
                      grid_list_[0], grid_list_[1],
                      i+1, len(grid_list)))
-            isoc_list.append(ezpadova_wrapper.get_one_isochrone_silently(
-                grid_list_[0], grid_list_[1], model=model, phot=phot,
-                silent=silent, **kwargs))
+            isoc_list.append(cmd.get_one_isochrone(
+                grid_list_[0], grid_list_[1], photsys_file=photsys_file, **kwargs))
 
     # verbose
     print("@Cham: got all requested isochrones!")
