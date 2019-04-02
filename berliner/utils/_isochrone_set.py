@@ -107,7 +107,7 @@ class IsochroneGrid:
         self.isocs = isocs
 
     def get_a_isoc(self, lgage, mhini):
-        """ return the closest isoc """
+        """ return the closest isoc via [logAge, [M/H]]"""
         d_isoc = np.abs(self.lgage - lgage) + np.abs(self.mhini - mhini)
         i_isoc = np.argmin(d_isoc)
         return self.isocs[i_isoc]
@@ -127,9 +127,9 @@ class IsochroneGrid:
         elif model == "parsec":
             print("@post_proc: processing PARSEC isochrones ...")
             for isoc in self.isocs:
-                _lgmini = Column(np.log10(isoc["M_ini"]), name="_lgmini")
-                _mhini = Column(eval_mh_parsec(isoc["Z"]), name="_mhini")
-                _lgage  = Column(isoc["log(age/yr)"], name="_lgage")
+                _lgmini = Column(np.log10(isoc["Mini"]), name="_lgmini")
+                _mhini = Column(eval_mh_parsec(isoc["Zini"]), name="_mhini")
+                _lgage  = Column(isoc["logAge"], name="_lgage")
                 add_columns_safely(isoc, (_lgmini, _lgage, _mhini))
             self.model = model
 
@@ -150,7 +150,8 @@ class IsochroneGrid:
 
     def isoc_linterp(self, restrictions=(('logG', 0.01), ('logTe', 0.01)),
                      interp_colnames=('logG', 'logTe'), sampling_factor=1.0,
-                     M_ini='Mini', n_jobs=-1, verbose=10):
+                     sampling_mode="linear", Mini='Mini',
+                     n_jobs=-1, verbose=10):
         if interp_colnames == "all":
             interp_colnames = self.colnames
 
@@ -158,9 +159,9 @@ class IsochroneGrid:
         isoc_interp_ = Parallel(n_jobs=n_jobs, verbose=verbose)(
             delayed(isoc_linterp)(isoc, restrictions=restrictions,
                                   sampling_factor=sampling_factor,
-                                  # sampling_mode=sampling_mode,
+                                  sampling_mode=sampling_mode,
                                   interp_colnames=interp_colnames,
-                                  M_ini=M_ini) for isoc in self.isocs)
+                                  Mini=Mini) for isoc in self.isocs)
 
         return IsochroneGrid(self.lgage, self.mhini, isoc_interp_)
 
