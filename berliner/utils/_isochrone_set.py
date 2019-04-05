@@ -11,7 +11,11 @@ from .isochrone_interp import isoc_interp, isoc_linterp
 
 # parsec
 def eval_mh_parsec(Z):
-    return 1/((1-0.2485)/Z-2.78)-0.0207
+    ZXsun = 0.0207
+    Y=0.2485+1.78*Z
+    X = 1-Y-Z
+    MH = np.log10(Z/X)-np.log10(ZXsun)
+    return MH
 
 
 # mist
@@ -38,8 +42,11 @@ def eval_mh(Z, model="parsec"):
     else:
         raise ValueError("@IsochroneSet: invalid model!")
 
-
+# ######################## #
 # isochrone grid
+# ######################## #
+
+
 class IsochroneGrid:
     def __init__(self, isoc_lgage, isoc_mhini, isocs, model=None, Zsun=0.0152):
         """isocs should be a list of astropy.table.Table / Isochrone instances
@@ -261,3 +268,4 @@ def make_delta(x, scale="linear", loose=True):
             xedges = np.concatenate(
                 ([x[0]], x[:-1] + np.diff(x) / 2., [x[-1]]))
         return np.diff(xedges)
+
