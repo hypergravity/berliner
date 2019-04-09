@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 
 
 def read_isochrones_ptn(ptn="./*.cmd", temp_dir="/tmp/", version="1.2",
-                             n_jobs=-1, verbose=10):
+                        n_jobs=-1, verbose=10):
     """ read multiple MIST cmd files """
     fps = glob.glob(ptn)
     isoc_lists = Parallel(n_jobs=n_jobs, verbose=verbose)(
@@ -44,7 +44,7 @@ def read_isochrones(filepath, temp_dir="/tmp/", version="1.2"):
                        photo_sys=photo_sys,
                        Yinit=Yinit,
                        Zinit=Zinit,
-                       FeH=FeH,
+                       MH=FeH,
                        aFe=aFe,
                        vvcrit=vvcrit,
                        Av=Av)
@@ -80,16 +80,16 @@ def read_isochrones(filepath, temp_dir="/tmp/", version="1.2"):
     if version == "1.1" or version == "1.2":
         for i in range(len(isolist)):
             _lgmass = Column(np.log10(isolist[i]["initial_mass"]), "_lgmass")
-            _feh = Column(isolist[i]["[Fe/H]_init"], "_feh")
+            _mhini = Column(isolist[i]["[Fe/H]_init"], "_mhini")
             _lgage = Column(isolist[i]["log10_isochrone_age_yr"], "_lgage")
             _eep = Column(isolist[i]["EEP"], "_eep")
-            isolist[i].add_columns((_lgmass, _feh, _lgage, _eep))
+            isolist[i].add_columns((_lgmass, _mhini, _lgage, _eep))
     elif version == "1.0":
         for i in range(len(isolist)):
             _lgmass = Column(np.log10(isolist[i]["initial_mass"]), "_lgmass")
-            _feh = Column(np.log10(isolist[i]["Z_surf"]), "_feh")
+            _mhini = Column(np.log10(isolist[i]["Z_surf"]), "_mhini")
             _lgage = Column(isolist[i]["log10_isochrone_age_yr"], "_lgage")
             _eep = Column(isolist[i]["EEP"], "_eep")
-            isolist[i].add_columns((_lgmass, _feh, _lgage, _eep))
+            isolist[i].add_columns((_lgmass, _mhini, _lgage, _eep))
 
     return isolist
