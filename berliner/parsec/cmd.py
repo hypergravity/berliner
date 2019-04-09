@@ -14,7 +14,6 @@ Last modified: 2019.04.02
 
 Homepage of CMD: http://stev.oapd.inaf.it/cgi-bin/cmd_3.2
 Homepage of berliner: https://github.com/hypergravity/berliner
-Email: bozhang@nao.cas.cn
 """
 
 
@@ -251,12 +250,16 @@ class CMD:
             return None, None, None
 
         # for isochrone grid, parallellized via logage
-        n_logage = (grid_logage[1] - grid_logage[0]) / grid_logage[2] + 1
-        n_mh = (grid_mh[1] - grid_mh[0]) / grid_mh[2] + 1
-        _grid_logage = np.linspace(grid_logage[0], grid_logage[1], n_logage)
-        _grid_mh = np.linspace(grid_mh[0], grid_mh[1], n_mh)
+        n_logage = np.round((grid_logage[1] - grid_logage[0]) / grid_logage[2]) + 1
+        n_mh = np.round((grid_mh[1] - grid_mh[0]) / grid_mh[2]) + 1
+        print("@CMD: n(logAge)={:.0f}, n([M/H])={:.0f}".format(n_logage, n_mh))
+
+        _grid_logage = np.arange(grid_logage[0], grid_logage[1]+grid_logage[2], grid_logage[2])
+        _grid_mh = np.arange(grid_mh[0], grid_mh[1]+grid_mh[2], grid_mh[2])
+        print("@CMD: grid(logAge): ", _grid_logage)
+        print("@CMD: grid([M/H]) : ", _grid_mh)
         # grid_logage_for_parallel = (grid_logage[0],grid_logage[1],0)
-        grid_mh_for_parallel = (grid_mh[0], grid_mh[1] + grid_mh[2], grid_mh[2])
+        grid_mh_for_parallel = (grid_mh[0], grid_mh[1], grid_mh[2])
         #print(_grid_logage, _grid_mh)
 
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose)(
