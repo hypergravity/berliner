@@ -9,26 +9,51 @@ Created on Fri Dec 28 21:27:28 2018
 #%%
 """ download a grid of isochrones """
 import numpy as np
-from berliner.parsec import get_isochrone_grid
+from berliner.parsec import CMD
 import joblib 
+c = CMD()
 
 # set grid
 #grid_logt = [6, 7., 9]
 #grid_feh = [-2.2, -1., 0, 1., 10]
-grid_logt = np.arange(6, 11, 0.05)
-grid_feh = np.arange(-4, 1, 0.05)
+#grid_lgage = np.arange(6, 10.15, 0.05)
+#grid_mhini = np.arange(-2.9, 0.5, 0.1)
 
 # get isochrones
-isoc_lgage, isoc_feh, isoc_list = get_isochrone_grid(
-    grid_feh, grid_logt, model="parsec12s", phot="2mass_spitzer_wise", 
-    n_jobs=30, verbose=10, silent=True)
+grid_logage=(6, 10.2, 0.1)
+grid_mh=(-2.6, 0.5, 0.1)
+
+isoc_lgage, isoc_mhini, isoc_list_2mass_wise = c.get_isochrone_grid_mh(
+    grid_logage=grid_logage, grid_mh=grid_mh, photsys_file="2mass_spitzer_wise",
+    n_jobs=50, verbose=10)
+
+isoc_lgage, isoc_mhini, isoc_list_sloan = c.get_isochrone_grid_mh(
+    grid_logage=grid_logage, grid_mh=grid_mh, photsys_file="sloan",
+    n_jobs=50, verbose=10)
+
+isoc_lgage, isoc_mhini, isoc_list_ps1 = c.get_isochrone_grid_mh(
+    grid_logage=grid_logage, grid_mh=grid_mh, photsys_file="panstarrs1", 
+    n_jobs=50, verbose=10)
+
+# combine photsys
+for i in range(len(isoc_list_sloan)):
+    for colname in isoc_list_ps1[i].colnames:
+        if colname not in isoc_list_sloan[i].colnames:
+            isoc_list_sloan[i].add_column(isoc_list_ps1[i][colname])
+    for colname in isoc_list_2mass_wise[i].colnames:
+        if colname not in isoc_list_sloan[i].colnames:
+            isoc_list_sloan[i].add_column(isoc_list_2mass_wise[i][colname])
+    print(i)
 
 """ save data """
 #joblib.dump((isoc_lgage, isoc_feh, isoc_list), 
 #     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise.dump")
 
-joblib.dump((isoc_lgage, isoc_feh, isoc_list), 
-     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise_hires.dump")
+#joblib.dump((isoc_lgage, isoc_mhini, isoc_list), 
+#     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise_hires.dump")
+
+joblib.dump((isoc_lgage, isoc_mhini, isoc_list_sloan), 
+     "/home/cham/PycharmProjects/berliner/berliner/data/cmd3.2_parsec12s_sloan_ps1_2mass_spitzer_wise.dump")
 
 #%%
 """ load data """
@@ -37,19 +62,33 @@ import joblib
 #isoc_lgage, isoc_feh, isoc_list = load(
 #     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise.dump")
 
-isoc_lgage, isoc_feh, isoc_list = joblib.load(
-     "/home/cham/PycharmProjects/berliner/berliner/data/parsec12s_2mass_spitzer_wise_hires.dump")
+isoc_lgage, isoc_mhini, isoc_list = joblib.load(
+     "/home/cham/PycharmProjects/berliner/berliner/data/cmd3.2_parsec12s_sloan_ps1_2mass_spitzer_wise.dump")
+
+used_colnames = ['Zini', 'logAge', 'Mini', 'int_IMF', 'Mass', 'logL', 'logTe', 'logg', 'label', 'Mloss', 'X', 'Y', 'Xc', 'Xn', 'Xo', 'Cexcess', 'Z', 'mbolmag', 'umag', 'gmag', 'rmag', 'imag', 'zmag', 'gP1mag', 'rP1mag', 'iP1mag', 'zP1mag', 'yP1mag', 'wP1mag', 'Jmag', 'Hmag', 'Ksmag', 'W1mag', 'W2mag', 'W3mag', 'W4mag']
+isoc_list = [_[used_colnames] for _ in isoc_list]
 
 #%%
 """ make an isochrone set """
 from berliner import utils
-ig = utils.IsochroneGrid(isoc_lgage, isoc_feh, isoc_list, model="parsec12s")
+ig = utils.IsochroneGrid(isoc_lgage, isoc_mhini, isoc_list, model="parsec")
 print(ig)
+print(np.sum(len(_) for _ in ig.isocs))
+
+for i in range(len(ig.isocs)):
+    ig.add_column(ig.isocs[i], 10**ig.isocs[i]["logTe"], "teff")
+    
 
 #%%
+
+isoc0 = ig.get_a_isoc(9,0)
+plot(isoc0["logTe"], isoc0["logg"], '-')
+indplot = (isoc0["label"]>=1)&(isoc0["label"]<=8)
+plot(isoc0["logTe"][indplot], isoc0["logg"][indplot], 'rs-')
+
 """ interpolation """
-igi = ig.isoc_linterp(restrictions=(('logG', 0.01), ('logTe', 0.01)),
-                      interp_colnames="all", M_ini='M_ini',
+igi = ig.isoc_linterp(restrictions=(('logg', 0.1), ('teff', 100)),
+                      interp_colnames="all", Mini='Mini',
                       n_jobs=20, verbose=10)
 print(ig)
 print(igi)
@@ -57,6 +96,48 @@ print(igi)
 """ make delta """
 igi.make_delta()
 
+
+#%%
+""" given Teff logg [M/H], evaluate weighted mean of sed """
+isocstack = igi.vstack()
+isocstack.add_column((isocstack["_d_mini"]*isocstack["_d_mhini"]*isocstack["_d_age"]), name="w")
+isocstack.write("/home/cham/PycharmProjects/berliner/berliner/data/cmd3.2_parsec12s_sloan_ps1_2mass_spitzer_wise.isocstack.fits")
+
+from astropy import table
+isocstack = table.Table.read("/home/cham/PycharmProjects/berliner/berliner/data/cmd3.2_parsec12s_sloan_ps1_2mass_spitzer_wise.isocstack.fits")
+from berliner.utils import TGMMachine
+
+tgm = TGMMachine(isocstack,tgm_cols=("teff", "logg", "_mhini"), tgm_sigma=(100, 0.2, 0.1), pred_cols=("teff", "logg", "_mhini"), wcol="w")
+
+test_tgm_sun = np.array([[5778,4.3,0.0]])
+test_tgm_kg = np.array([[4500,2.3,0.0]])
+tgm.predict(test_tgm_kg)
+
+tgm.predict(test_tgm_sun)
+
+mod_sed = np.array(isocstack['umag', 'gmag', 'rmag', 'imag', 'zmag', 'gP1mag', 'rP1mag', 'iP1mag', 'zP1mag', 'yP1mag', 'wP1mag', 'Jmag', 'Hmag', 'Ksmag', 'W1mag', 'W2mag', 'W3mag', 'W4mag'].to_pandas())
+mod_tgm = np.array(isocstack["teff", "logg", "_mhini"].to_pandas())
+mod_mam = np.array(isocstack["Mini", "logAge", "_mhini"].to_pandas())
+
+
+sigma_tgm = np.array([[100,0.2,0.1]])
+
+test_tgm_sun = np.array([[5778,4.3,0.0]])
+test_tgm_kg = np.array([[4500,2.3,0.0]])
+
+#%%timeit
+def eval_model(test_tgm):
+    test_w = np.exp(-0.5*np.sum(((tgm-test_tgm)/sigma_tgm)**2., axis=1))*mod_w
+    pred_sed = np.sum(mod_sed*test_w.reshape(-1,1), axis=0)/np.sum(test_w)
+    #pred_mam = np.sum(mod_mam*test_w.reshape(-1,1), axis=0)/np.sum(test_w)
+    return pred_sed
+
+print(eval_model(test_tgm_sun))
+print(eval_model(test_tgm_kg))
+
+figure()
+plot(eval_model(test_tgm_sun))
+plot(eval_model(test_tgm_kg))
 #%%
 """ cut stages """
 for i in range(len(igi.isocs)):
@@ -177,4 +258,3 @@ fig2.savefig("/home/cham/PycharmProjects/berliner/berliner/data/lnprior_teff_log
 #for i in range(len(isoc0)):
 #    text(isoc0["logTe"][i], isoc0["logG"][i], "{}".format(isoc0["stage"][i]))
 
-    

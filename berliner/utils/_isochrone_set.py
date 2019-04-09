@@ -51,6 +51,11 @@ class IsochroneGrid:
     def __init__(self, isoc_lgage, isoc_mhini, isocs, model=None, Zsun=0.0152):
         """isocs should be a list of astropy.table.Table / Isochrone instances
         """
+        # assert same length
+        n_isocs = len(isocs)
+        assert len(isoc_lgage) == n_isocs
+        assert len(isoc_mhini) == n_isocs
+
         # self.isocs = isocs
         self.grid_lgage = np.unique(isoc_lgage)             # grid of lg(age)
         self.grid_mhini = np.unique(isoc_mhini)             # grid of [M/H]ini
@@ -144,7 +149,7 @@ class IsochroneGrid:
             print("@post_proc: processing MIST isochrones ...")
             for isoc in self.isocs:
                 _lgmini = Column(np.log10(isoc["initial_mass"]), name="_lgmini")
-                _mhini = Column(isoc["Fe/H]_init"], name="_mhini")
+                _mhini = Column(isoc["[Fe/H]_init"], name="_mhini")
                 _lgage = Column(isoc["log10_isochrone_age_yr"], name="_lgage")
                 add_columns_safely(isoc, (_lgmini, _lgage, _mhini))
             self.model = model
