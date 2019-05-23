@@ -367,3 +367,113 @@ def random_p(sampler, nloopmax=1000, method="mle", costfun=None, args=()):
 #     #av_est, dm_est = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), Y))
 #
 #     return np.array([av_ols, dm_ols])
+
+def general_search(params, sed_mod, lnprior,
+                   Alambda,
+                   test_sed_obs, test_sed_obs_err=None,
+                   test_vpi_obs=None, test_vpi_obs_err=None,
+                   Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
+                   av_llim=0., return_est=False):
+    """
+    when p = [T, G, Av, DM],
+    given a set of SED,
+    find the best T, G and estimate the corresponding Av and DM
+    """
+
+    # select good bands
+    if test_sed_obs_err is None:
+        # all bands will be used
+        ind_good_band = np.isfinite(test_sed_obs)
+    else:
+        ind_good_band = np.isfinite(test_sed_obs) & (test_sed_obs_err > 0)
+
+    n_good_band = np.sum(ind_good_band)
+    if n_good_band < 5:
+        return [np.ones((4,), ) * np.nan for i in range(3)]
+
+    # lnprior
+    # lnprior = r2.values[:, -1]
+
+    # T & G grid
+    # t_est, g_est = r2.flats.T
+    # params
+
+    # model SED
+    # sed_mod = r2.values[:, :-1][:, ind_good_band]
+    sed_mod = sed_mod[:, ind_good_band]
+    # observed SED
+    sed_obs = test_sed_obs[ind_good_band]
+    # observed SED error
+    if sed_err_typical is not None:
+        sed_obs_err = np.ones_like(sed_obs, float) * sed_err_typical
+    else:
+        sed_obs_err = test_sed_obs_err[ind_good_band]
+
+    # WLS to guess Av and DM
+    av_est, dm_est = guess_avdm_wls(
+        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band])
+
+    # cost(SED)
+    res_sed = sed_mod + av_est.reshape(-1, 1) * Alambda[
+        ind_good_band] + dm_est.reshape(-1, 1) - sed_obs
+
+    if sed_err_typical is not None:
+        cost_sed = np.nansum(np.abs(res_sed / sed_err_typical) ** cost_order,
+                             axis=1)
+    else:
+        cost_sed = np.nansum(np.abs(res_sed / sed_obs_err) ** cost_order,
+                             axis=1)
+    lnprob = -0.5 * cost_sed
+
+    # cost(VPI)
+    if test_vpi_obs is not None and test_vpi_obs_err is not None and Lvpi > 0:
+        vpi_mod = 10 ** (2 - 0.2 * dm_est)
+        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.
+        if np.all(np.isfinite(cost_vpi)):
+            lnprob -= 0.5 * cost_vpi
+
+    # lnprob = cost(SED) + cost(VPI) + prior
+    if Lprior > 0:
+        lnprob += lnprior * Lprior
+
+    # eliminate neg Av
+    lnprob[av_est < av_llim] = -np.inf
+    lnprob -= np.nanmax(lnprob)
+
+    if return_est:
+        return params, av_est, dm_est, cost_sed, lnprob
+
+    # normalization
+    prob = np.exp(lnprob)
+    prob /= np.sum(prob)
+
+    # weighted mean
+    ind_mle = np.argmax(lnprob)
+    av_mle = av_est[ind_mle]
+    dm_mle = dm_est[ind_mle]
+    p_mle = params[ind_mle]
+
+    av_mean = np.sum(av_est * prob)
+    dm_mean = np.sum(dm_est * prob)
+    p_mean = np.sum(params * prob.reshape(-1, 1), axis=0)
+
+    av_std = np.sum((av_est - av_mean) ** 2 * prob)
+    dm_std = np.sum((dm_est - dm_mean) ** 2 * prob)
+    p_std = np.sum((params - p_mean) ** 2 * prob.reshape(-1, 1), axis=0)
+
+    p_mle = np.hstack([p_mle, av_mle, dm_mle])
+    p_mean = np.hstack([p_mean, av_mean, dm_mean])
+    p_std = np.hstack([p_std, av_std, dm_std])
+
+    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.))
+    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed ** 2., axis=1)))
+
+    return dict(
+        p_mle=p_mle,
+        p_mean=p_mean,
+        p_std=p_std,
+        rmsmle=rms_sed_mle,
+        rmsmin=rms_sed_min,
+        ind_mle=ind_mle,
+        n_good=np.sum(ind_good_band)
+    )
