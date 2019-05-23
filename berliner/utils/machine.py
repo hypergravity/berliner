@@ -1,6 +1,8 @@
 import numpy as np
 from emcee import EnsembleSampler
 
+from .ls import wls_simple
+
 
 class TGMMachine():
     """ the TGM Machine class """
@@ -73,6 +75,114 @@ class SED2TG():
                 pos1, lnprob1, rstate1 = sampler.run_mcmc(p_rand, nsteps[i])
         return sampler
 
+    def grid_search(self, test_sed_obs, test_sed_obs_err=None,
+                    test_vpi_obs=None, test_vpi_obs_err=None,
+                    Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1,
+                    cost_order=2, av_llim=0., return_est=False):
+        p_mle, p_mean, p_std = grid_search2(self.r, self.Alambda,
+                                            test_sed_obs, test_sed_obs_err,
+                                            test_vpi_obs, test_vpi_obs_err,
+                                            Lvpi, Lprior, sed_err_typical,
+                                            cost_order, av_llim, return_est)
+        sed_mean = self.r(p_mean[:2])[:-1]+self.Alambda*p_mean[2]+p_mean[3]
+        sed_rmse = np.sqrt(np.nanmean(np.square(sed_mean-test_sed_obs)))
+        return p_mle, p_mean, p_std, sed_rmse
+
+
+def grid_search2(r2, Alambda,
+                 test_sed_obs, test_sed_obs_err=None,
+                 test_vpi_obs=None, test_vpi_obs_err=None,
+                 Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
+                 av_llim=0., return_est=False):
+    """
+    when p = [T, G, Av, DM],
+    given a set of SED,
+    find the best T, G and estimate the corresponding Av and DM
+    """
+
+    # select good bands
+    if test_sed_obs_err is None:
+        # all bands will be used
+        ind_good_band = np.isfinite(test_sed_obs)
+    else:
+        ind_good_band = np.isfinite(test_sed_obs) & (test_sed_obs_err > 0)
+
+    n_good_band = np.sum(ind_good_band)
+    if n_good_band < 5:
+        return [np.ones((4,),)*np.nan for i in range(3)]
+
+    # lnprior
+    lnprior = r2.values[:, -1]
+
+    # T & G grid
+    t_est, g_est = r2.flats.T
+
+    # model SED
+    sed_mod = r2.values[:, :-1][:, ind_good_band]
+    # observed SED
+    sed_obs = test_sed_obs[ind_good_band]
+    # observed SED error
+    if sed_err_typical is not None:
+        sed_obs_err = np.ones_like(sed_obs, float)*sed_err_typical
+    else:
+        sed_obs_err = test_sed_obs_err[ind_good_band]
+
+    # WLS to guess Av and DM
+    av_est, dm_est = guess_avdm_wls(
+        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band])
+
+    # cost(SED)
+    res_sed = sed_mod + av_est.reshape(-1, 1) * Alambda[ind_good_band] + dm_est.reshape(-1, 1) - sed_obs
+    if sed_err_typical is not None:
+        cost_sed = np.nansum(np.abs(res_sed / sed_err_typical) ** cost_order, axis=1)
+    else:
+        cost_sed = np.nansum(np.abs(res_sed / sed_obs_err) ** cost_order, axis=1)
+    lnprob = -0.5 * cost_sed
+
+    # cost(VPI)
+    if test_vpi_obs is not None and test_vpi_obs_err is not None and Lvpi > 0:
+        vpi_mod = 10 ** (2 - 0.2 * dm_est)
+        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.
+        if np.all(np.isfinite(cost_vpi)):
+            lnprob -= 0.5*cost_vpi
+
+    # lnprob = cost(SED) + cost(VPI) + prior
+    if Lprior > 0:
+        lnprob += lnprior * Lprior
+
+    # eliminate neg Av
+    lnprob[av_est < av_llim] = -np.inf
+    lnprob -= np.nanmax(lnprob)
+
+    if return_est:
+        return t_est, g_est, av_est, dm_est, cost_sed, lnprob
+
+    # normalization
+    prob = np.exp(lnprob)
+    prob /= np.sum(prob)
+
+    # weighted mean
+    av_mle = av_est[np.argmax(lnprob)]
+    dm_mle = dm_est[np.argmax(lnprob)]
+    t_mle = t_est[np.argmax(lnprob)]
+    g_mle = g_est[np.argmax(lnprob)]
+
+    av_mean = np.sum(av_est * prob)
+    dm_mean = np.sum(dm_est * prob)
+    t_mean = np.sum(t_est * prob)
+    g_mean = np.sum(g_est * prob)
+
+    av_std = np.sum((av_est - av_mean) ** 2 * prob)
+    dm_std = np.sum((dm_est - dm_mean) ** 2 * prob)
+    t_std = np.sum((t_est - t_mean) ** 2 * prob)
+    g_std = np.sum((g_est - g_mean) ** 2 * prob)
+
+    p_mle = np.array([t_mle, g_mle, av_mle, dm_mle])
+    p_mean = np.array([t_mean, g_mean, av_mean, dm_mean])
+    p_std = np.array([t_std, g_std, av_std, dm_std])
+
+    return p_mle, p_mean, p_std
+
 
 def model_sed_abs(x, r):
     """ interpolate with r(Regli) at position x """
@@ -88,13 +198,51 @@ def initial_guess(x, r, Alambda, sed_obs, sed_obs_err):
     sed_obs = sed_obs.reshape(1, -1)[:, ind_good_band]
 
     # solve Av and DM
-    av_est, dm_est = guess_avdm(sed_mod, sed_obs, Alambda[ind_good_band])
+    av_est, dm_est = guess_avdm_ols(sed_mod, sed_obs, Alambda[ind_good_band])
 
     # neg Av --> 0.001
     if av_est <= 0:
         av_est = 0.001
 
     return np.array([x[0], x[1], av_est, dm_est])
+
+
+def guess_avdm_ols(sed_mod, sed_obs, Alambda):
+    """ matrix form OLS solution for Av and DM """
+    sed_mod = np.array(sed_mod)
+    sed_obs = np.array(sed_obs)
+
+    assert sed_mod.ndim == 2
+    assert sed_obs.ndim == 2
+
+    n_band = sed_obs.size
+    # color
+    X = np.array([Alambda, np.ones_like(Alambda)]).T
+    y = np.matrix((sed_obs - sed_mod).T)
+    # av_ols, dm_ols = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T,X)),X.T),Y))
+    av_est, dm_est = np.array(
+        np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), y))
+
+    return av_est, dm_est
+
+
+def guess_avdm_wls(sed_mod, sed_obs, sed_obs_err, Alambda):
+    """ matrix form OLS solution for Av and DM """
+    sed_mod = np.array(sed_mod)
+    sed_obs = np.array(sed_obs)
+    sed_obs_err = np.array(sed_obs_err)
+
+    assert sed_mod.ndim == 2
+
+    # d_mag
+    X = np.array([Alambda, np.ones_like(Alambda, float)]).T
+    y = (sed_obs.reshape(1, -1) - sed_mod).T
+    yerr = sed_obs_err
+
+    # solve Av & DM with WLS
+    av_est, dm_est = wls_simple(X, y, yerr)
+
+    return av_est, dm_est
 
 
 def costfun(x, r, p_bounds, Alambda, sed_obs, sed_obs_err, vpi_obs, vpi_obs_err, Lvpi, Lprior):
@@ -197,25 +345,25 @@ def random_p(sampler, nloopmax=1000, method="mle", costfun=None, args=()):
         raise (ValueError("random_p failed!"))
 
 
-def guess_avdm(sed_mod, sed_obs, Alambda):
-    """ guess Av and DM with OLS method
-    Parameters
-    ----------
-    sed_mod:
-        (n_band, ) array
-    sed_obs:
-        (n_band, ) array
-    """
-
-    n_band = sed_obs.size
-    # X = [[Alambda_i, 1], [], ...]
-    X = np.matrix(np.ones((n_band, 2), float))
-    X[:, 0] = Alambda[:, None]
-    # Y = [[d_sed_i], [], ...]
-    Y = np.matrix((sed_obs - sed_mod).reshape(-1, 1))
-
-    # OLS solution
-    av_ols, dm_ols = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), Y))
-    #av_est, dm_est = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), Y))
-
-    return np.array([av_ols, dm_ols])
+# def guess_avdm(sed_mod, sed_obs, Alambda):
+#     """ guess Av and DM with OLS method
+#     Parameters
+#     ----------
+#     sed_mod:
+#         (n_band, ) array
+#     sed_obs:
+#         (n_band, ) array
+#     """
+#
+#     n_band = sed_obs.size
+#     # X = [[Alambda_i, 1], [], ...]
+#     X = np.matrix(np.ones((n_band, 2), float))
+#     X[:, 0] = Alambda[:, None]
+#     # Y = [[d_sed_i], [], ...]
+#     Y = np.matrix((sed_obs - sed_mod).reshape(-1, 1))
+#
+#     # OLS solution
+#     av_ols, dm_ols = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), Y))
+#     #av_est, dm_est = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), Y))
+#
+#     return np.array([av_ols, dm_ols])
