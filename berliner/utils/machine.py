@@ -373,7 +373,7 @@ def general_search(params, sed_mod, lnprior,
                    test_sed_obs, test_sed_obs_err=None,
                    test_vpi_obs=None, test_vpi_obs_err=None,
                    Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
-                   av_llim=0., return_est=False):
+                   av_llim=0., debug=False):
     """
     when p = [T, G, Av, DM],
     given a set of SED,
@@ -440,7 +440,7 @@ def general_search(params, sed_mod, lnprior,
     lnprob[av_est < av_llim] = -np.inf
     lnprob -= np.nanmax(lnprob)
 
-    if return_est:
+    if debug:
         return params, av_est, dm_est, cost_sed, lnprob
 
     # normalization
@@ -477,3 +477,119 @@ def general_search(params, sed_mod, lnprior,
         ind_mle=ind_mle,
         n_good=np.sum(ind_good_band)
     )
+
+
+def general_search_v2(params, sed_mod, lnprior,
+                      Alambda,
+                      sed_obs, sed_obs_err=0.1,
+                      vpi_obs=None, vpi_obs_err=None,
+                      Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
+                      av_llim=0., debug=False):
+    """
+    when p = [teff, logg, [M/H], Av, DM], theta = [teff, logg, [M/H]],
+    given a set of SED,
+    find the best theta and estimate the corresponding Av and DM
+    """
+
+    n_band = len(sed_obs)
+    n_mod = sed_mod.shape[0]
+
+    # cope with scalar sed_obs_err
+    if isinstance(sed_obs_err, np.float):
+        sed_obs_err = np.ones_like(sed_obs, np.float) * sed_obs_err
+
+    # select good bands
+    ind_good_band = np.isfinite(sed_obs) & (sed_obs_err > 0)
+    n_good_band = np.sum(ind_good_band)
+    if n_good_band < 4:
+        # n_good_band = 3: unique solution
+        # so n_good_band should be at least 4
+        return [np.ones((4,), ) * np.nan for i in range(3)]
+
+    # use a subset of bands
+    sed_mod_select = sed_mod[:, ind_good_band]
+    # observed SED
+    sed_obs_select = sed_obs[ind_good_band]
+    sed_obs_err_select = sed_obs_err[ind_good_band]
+    # extinction coefs
+    Alambda_select = Alambda[ind_good_band]
+
+    # WLS to guess Av and DM
+    av_est, dm_est = guess_avdm_wls(
+        sed_mod_select, sed_obs_select, sed_obs_err_select, Alambda_select)
+
+    # cost(SED)
+    res_sed = sed_mod_select + av_est.reshape(-1, 1) * Alambda_select \
+        + dm_est.reshape(-1, 1) - sed_obs_select
+    lnprob_sed = -0.5 * np.nansum(
+        np.abs(res_sed / sed_obs_err) ** cost_order, axis=1)
+
+    # cost(VPI)
+    if vpi_obs is not None and vpi_obs_err is not None and Lvpi > 0:
+        vpi_mod = 10 ** (2 - 0.2 * dm_est)
+        lnprob_vpi = -0.5 * ((vpi_mod - vpi_obs) / vpi_obs_err) ** 2.
+    else:
+        lnprob_vpi = np.zeros((n_mod,), np.float)
+    lnprob_vpi = np.where(np.isfinite(lnprob_vpi), lnprob_vpi, 0) * Lvpi
+
+    # lnprob = cost(SED) + cost(VPI) + prior
+    if Lprior > 0:
+        lnprob_prior = lnprior * Lprior
+
+    # posterior probability
+    lnpost = lnprob_sed + lnprob_vpi + lnprob_prior
+    # eliminate neg Av
+    lnpost[av_est < av_llim] = -np.inf
+    lnpost -= np.nanmax(lnpost)
+
+    # for debugging the code
+    if debug:
+        return dict(params=params,
+                    av_est=av_est,
+                    dm_est=dm_est,
+                    lnprob_sed=lnprob_sed,
+                    lnprob_vpi=lnprob_vpi,
+                    lnprior=lnprior)
+
+    # normalization
+    post = np.exp(lnpost)
+    L0 = np.sum(post)
+
+    # weighted mean
+    # ind_mle = np.argmax(lnpost)
+    # av_mle = av_est[ind_mle]
+    # dm_mle = dm_est[ind_mle]
+    # p_mle = params[ind_mle]
+
+    L1_av = np.sum(av_est * post)
+    L1_dm = np.sum(dm_est * post)
+    L1_p = np.sum(params * post.reshape(-1, 1), axis=0)
+
+    L2_av = np.sum(av_est ** 2 * post)
+    L2_dm = np.sum(dm_est ** 2 * post)
+    L2_p = np.sum(params ** 2 * post.reshape(-1, 1), axis=0)
+
+    sigma_av = np.sqrt(L2_av / L0 - L1_av ** 2 / L0 ** 2)
+    sigma_dm = np.sqrt(L2_dm / L0 - L1_dm ** 2 / L0 ** 2)
+    sigma_p = np.sqrt(L2_p / L0 - L1_p ** 2 / L0 ** 2)
+
+    # MLE model
+    ind_mle = np.argmax(lnprob_sed + lnprob_vpi)
+    av_mle = av_est[ind_mle]
+    dm_mle = dm_est[ind_mle]
+    p_mle = params[ind_mle]
+
+    p_mle = np.hstack([p_mle, av_mle, dm_mle])
+    p_mean = np.hstack([L1_p/L0, L1_av/L0, L1_dm/L0])
+    p_err = np.hstack([sigma_p, sigma_av, sigma_dm])
+
+    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.))
+    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed ** 2., axis=1)))
+
+    return dict(p_mle=p_mle,
+                p_mean=p_mean,
+                p_err=p_err,
+                rmsmle=rms_sed_mle,
+                rmsmin=rms_sed_min,
+                ind_mle=np.ind,
+                n_good=np.sum(ind_good_band))
