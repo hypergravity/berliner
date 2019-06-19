@@ -479,12 +479,11 @@ def general_search(params, sed_mod, lnprior,
     )
 
 
-def general_search_v2(params, sed_mod, lnprior,
-                      Alambda,
+def general_search_v2(params, sed_mod, lnprior, Alambda,
                       sed_obs, sed_obs_err=0.1,
                       vpi_obs=None, vpi_obs_err=None,
-                      Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
-                      av_llim=0., debug=False):
+                      Lvpi=1.0, Lprior=1.0,
+                      cost_order=2, av_llim=-0.001, debug=False):
     """
     when p = [teff, logg, [M/H], Av, DM], theta = [teff, logg, [M/H]],
     given a set of SED,
@@ -522,7 +521,7 @@ def general_search_v2(params, sed_mod, lnprior,
     res_sed = sed_mod_select + av_est.reshape(-1, 1) * Alambda_select \
         + dm_est.reshape(-1, 1) - sed_obs_select
     lnprob_sed = -0.5 * np.nansum(
-        np.abs(res_sed / sed_obs_err) ** cost_order, axis=1)
+        np.abs(res_sed / sed_obs_err_select) ** cost_order, axis=1)
 
     # cost(VPI)
     if vpi_obs is not None and vpi_obs_err is not None and Lvpi > 0:
@@ -591,5 +590,5 @@ def general_search_v2(params, sed_mod, lnprior,
                 p_err=p_err,
                 rmsmle=rms_sed_mle,
                 rmsmin=rms_sed_min,
-                ind_mle=np.ind,
+                ind_mle=ind_mle,
                 n_good=np.sum(ind_good_band))
