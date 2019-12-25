@@ -65,7 +65,7 @@ class TrackSet:
         mres = least_squares(cost_lgage, x0=300, method="lm",
                              args=([1, 0., 12], self), xtol=1e-4)
         if mres.cost > 0.1:
-            raise ValueError("logAge not valid!")
+            return np.ones_like(interp_colnames, dtype=float) * np.nan
         else:
             return self.interp(x=np.hstack((x[:2], mres.x[0])),
                                interp_colnames=interp_colnames)
