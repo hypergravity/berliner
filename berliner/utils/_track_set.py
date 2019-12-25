@@ -2,7 +2,6 @@ import numpy as np
 from regli.regli import bisect_interval
 from regli import Regli
 from scipy.optimize import least_squares
-from numba import jit
 
 
 class TrackSet:
@@ -143,7 +142,6 @@ class TrackSet:
         return self.tracks[i_track]
 
 
-@jit
 def cost_lgage(eep, mma, ts):
     mme = np.hstack((mma[:2], eep))
     _lgage_interp = ts.interp(mme, interp_colnames=["_lgage"])
