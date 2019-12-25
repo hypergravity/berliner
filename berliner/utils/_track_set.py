@@ -1,6 +1,8 @@
 import numpy as np
 from regli.regli import bisect_interval
 from regli import Regli
+from scipy.optimize import least_squares
+from numba import jit
 
 
 class TrackSet:
@@ -51,14 +53,31 @@ class TrackSet:
         """
         return np.array([self.interp(_x, interp_colnames=interp_colnames) for _x in xs])
 
-    def interp(self, x=(1.01, 0.01, 213.89), interp_colnames=["log_Teff", "log_g", "_feh"]):
+    def interp_mma(self, x=(1.01, 0.01, 213.89),
+                   interp_colnames=["log_Teff", "log_g", "_feh"], eepinit=202):
+        """ interplate tracks at a single point
+
+        Parameters
+        ----------
+        x:
+            initial mass, [Fe/H], logAge
+        """
+        mres = least_squares(cost_lgage, x0=300, method="lm",
+                             args=([1, 0., 12], self), xtol=1e-4)
+        if mres.cost > 0.1:
+            raise ValueError("logAge not valid!")
+        else:
+            return self.interp(x=np.hstack((x[:2], mres.x[0])),
+                               interp_colnames=interp_colnames)
+
+    def interp(self, x=(1.01, 0.01, 213.89),
+               interp_colnames=["log_Teff", "log_g", "_feh"]):
         """ interplate tracks at a single point
 
         Parameters
         ----------
         x:
             initial mass, [Fe/H], EEP
-
         """
         test_mini, test_feh, test_eep = x
 
@@ -122,3 +141,10 @@ class TrackSet:
         d_track = np.abs(self.logm - logm) + np.abs(self.feh - feh)
         i_track = np.argmin(d_track)
         return self.tracks[i_track]
+
+
+@jit
+def cost_lgage(eep, mma, ts):
+    mme = np.array([mma[:2], eep])
+    _lgage_interp = ts.interp(mme, interp_colnames=["_lgage"])
+    return np.sum(np.abs(_lgage_interp-mma[2]))
