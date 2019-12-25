@@ -145,6 +145,6 @@ class TrackSet:
 
 @jit
 def cost_lgage(eep, mma, ts):
-    mme = np.array([mma[:2], eep])
+    mme = np.hstack((mma[:2], eep))
     _lgage_interp = ts.interp(mme, interp_colnames=["_lgage"])
     return np.sum(np.abs(_lgage_interp-mma[2]))
