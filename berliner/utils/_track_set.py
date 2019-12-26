@@ -64,7 +64,7 @@ class TrackSet:
         try:
             mres = least_squares(cost_lgage, x0=eepinit, method="lm",
                                  args=(x, self), xtol=1e-4)
-        except ValueError or IndexError:
+        except Exception:
             return np.ones_like(interp_colnames, dtype=float) * np.nan
 
         if mres.cost > 0.1:
