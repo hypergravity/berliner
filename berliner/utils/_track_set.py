@@ -61,8 +61,12 @@ class TrackSet:
         x:
             initial mass, [Fe/H], logAge
         """
-        mres = least_squares(cost_lgage, x0=eepinit, method="lm",
-                             args=(x, self), xtol=1e-4)
+        try:
+            mres = least_squares(cost_lgage, x0=eepinit, method="lm",
+                                 args=(x, self), xtol=1e-4)
+        except ValueError as ve:
+            return np.ones_like(interp_colnames, dtype=float) * np.nan
+
         if mres.cost > 0.1:
             return np.ones_like(interp_colnames, dtype=float) * np.nan
         else:
