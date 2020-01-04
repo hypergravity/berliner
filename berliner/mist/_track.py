@@ -13,7 +13,7 @@ Zsun = 0.0142857
 def read_tracks_ptn(ptn="./*.track.eep", colnames=None, n_jobs=-1, verbose=5,
                     metatable=True):
     """ read multiple MIST track files """
-    fps = glob.glob(ptn)
+    fps = np.sort(glob.glob(ptn))
     print("@mist: reading tracks ...")
     track_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(read_track)(fp, colnames) for fp in fps)

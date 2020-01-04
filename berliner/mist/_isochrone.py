@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
 def read_isochrones_ptn(ptn="./*.cmd", temp_dir="/tmp/", version="1.2",
                         n_jobs=-1, verbose=10):
     """ read multiple MIST cmd files """
-    fps = glob.glob(ptn)
+    fps = np.sort(glob.glob(ptn))
     isoc_lists = Parallel(n_jobs=n_jobs, verbose=verbose)(
         delayed(read_isochrones)(fp, temp_dir=temp_dir, version=version)
         for fp in fps)
