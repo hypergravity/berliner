@@ -42,5 +42,5 @@ isoc_lgage, isoc_mhini, isoc_list_2mass_wise = c.get_isochrone_grid_mh(
     n_jobs=50, verbose=10)
 
 # More ... 
-c.help()            # look at the output, it may help you!
+c.help()            # take a look at the output, it may help you!
 ```
