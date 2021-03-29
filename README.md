@@ -12,8 +12,6 @@ Bo Zhang, [bozhang@nao.cas.cn](mailto:bozhang@nao.cas.cn)
 - for the latest **stable** version: `pip install berliner`
 - for the latest **github** version: `pip install git+git://github.com/hypergravity/berliner`
 
-## doc (TODO...)
-
 ## How to download isochrones from CMD 3.4 
 
 last tested: 2020-12-16
