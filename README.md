@@ -14,7 +14,7 @@ Bo Zhang, [bozhang@nao.cas.cn](mailto:bozhang@nao.cas.cn)
 
 ## How to download isochrones from CMD 3.4 
 
-last tested: 2020-12-16
+last tested: 2021-03-31
 
 ```python
 # import CMD
