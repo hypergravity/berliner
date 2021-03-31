@@ -10,9 +10,11 @@ from astropy.table import Table
 str_cmd_welcome = """
 Welcome to use berliner.parsec.cmd.CMD!
 This module is to help you download CMD isochrones automatically.
-Last modified: 2019.04.02
+This module is developed when CMD version is 3.2 but updated to 3.4 now.
+Presently, it seems that CMD 3.2 & 3.3 are not usable...
+Last test passed on 2021.03.31 @CMD 3.4
 
-Homepage of CMD: http://stev.oapd.inaf.it/cgi-bin/cmd_3.2
+Homepage of CMD: http://stev.oapd.inaf.it/cgi-bin/cmd
 Homepage of berliner: https://github.com/hypergravity/berliner
 """
 
@@ -117,16 +119,30 @@ def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
 
 class CMD:
     """ CMD class, to download isochrones automatically """
-    def __init__(self):
+    def __init__(self, field="/cgi-bin/cmd", version=None):
+        """ PARSEC CMD
+
+        Parameters
+        ----------
+        field: str
+            the field string, defaults to "/cgi-bin/cmd"
+        version: float
+            change *version* to change the CMD version
+            the tested versions are 3.2, 3.3 and 3.4
+            defaults to None which means the most recent version
+        """
+
         self.cmdhost = "http://stev.oapd.inaf.it"
         self.Zsun = 0.0152
 
         self.cmdp = None
         self.default_kwargs = None
 
-        self.update()
+        if version is not None:
+            field = "{}_{:.1f}".format(field, version)
+        self.update(field=field)
 
-        self.limit_mh = (-2.9,0.9)
+        self.limit_mh = (-2.9, 0.9)
         self.limit_logage = (1.1, 10.5)
         self.limit_z = (0.0000000000152, 0.1)
 
@@ -159,9 +175,9 @@ class CMD:
     def welcome(self):
         print(str_cmd_welcome)
 
-    def update(self):
+    def update(self, field="/cgi-bin/cmd"):
         """ update hosts """
-        self.default_kwargs, self.cmdp = cmd_defaults(self.cmdhost + "/cgi-bin/cmd")
+        self.default_kwargs, self.cmdp = cmd_defaults(self.cmdhost + field)
 
     def valid_logage(self, grid_logage):
         """ to validate grids of logAge, [M/H] """
@@ -461,11 +477,11 @@ class CMD:
 def convert_to_table(this_output):
     """ convert isochrones to tables """
     line0 = np.where(["# Zini" in this_line for this_line in this_output])[0]
-    #print(len(this_output), line0)
+    # print(len(this_output), line0)
     line1 = np.int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
     line = np.append(line0, line1)
     n_isocs = len(line) - 1
-    #print(n_isocs)
+    # print(n_isocs)
 
     if n_isocs == 1:
         # only one table
@@ -473,7 +489,7 @@ def convert_to_table(this_output):
         return isoc
     elif n_isocs > 1:
         # multiple tables
-        #print(line)
+        # print(line)
         isocs = [Table.read(this_output[line[i]:line[i+1]], format="ascii.commented_header") for i in range(len(line)-1)]
         return isocs
     else:
