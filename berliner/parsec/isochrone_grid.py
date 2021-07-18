@@ -35,9 +35,6 @@ from .cmd import CMD
 from .isochrone import Zsun, Zmin, Zmax, logtmax, logtmin
 
 
-cmd = CMD()
-
-
 def __find_valid_grid(grid_feh, grid_logt, Zsun=Zsun):
     """ return a valid grid of [feh, logt]
 
@@ -108,6 +105,8 @@ def get_isochrone_grid(grid_feh, grid_logt, photsys_file="2mass_spitzer",
     vgrid_feh, vgrid_logt, grid_list, isoc_list
 
     """
+    cmd = CMD()
+    
     # validate grid
     vgrid_feh, vgrid_logt = __find_valid_grid(grid_feh, grid_logt, Zsun=Zsun)
 
