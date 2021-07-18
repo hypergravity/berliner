@@ -91,7 +91,7 @@ class CMDParser(HTMLParser):
         return
 
 
-def cmd_defaults(cmdhost, photsys_file="YBC_2mass_spitzer", imf_file="salpeter"):
+def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
     # get cmd web default keywords
     cmd_data = urlopen(cmdhost).read().decode('utf8')
 
@@ -100,7 +100,7 @@ def cmd_defaults(cmdhost, photsys_file="YBC_2mass_spitzer", imf_file="salpeter")
     cmdp.feed(cmd_data)
 
     default_kwargs = cmdp.default_kwargs
-    assert photsys_file in cmdp.photsys_file
+    # assert photsys_file in cmdp.photsys_file???
     assert imf_file in cmdp.imf_file
     photsys_file = "tab_mag_odfnew/tab_mag_"+photsys_file+".dat"
     imf_file = "tab_imf/imf_"+imf_file+".dat"
@@ -118,28 +118,24 @@ def cmd_defaults(cmdhost, photsys_file="YBC_2mass_spitzer", imf_file="salpeter")
 
 class CMD:
     """ CMD class, to download isochrones automatically """
-    def __init__(self, field="/cgi-bin/cmd", version=None):
+    def __init__(self, cmdhost="http://stev.oapd.inaf.it/cgi-bin/cmd", cmdresponse="http://stev.oapd.inaf.it"):
         """ PARSEC CMD
 
         Parameters
         ----------
-        field: str
-            the field string, defaults to "/cgi-bin/cmd"
-        version: float
-            change *version* to change the CMD version
-            the tested versions are 3.2, 3.3 and 3.4
-            defaults to None which means the most recent version
+        cmdhost:
+            CMD address
         """
 
-        self.cmdhost = "http://stev.oapd.inaf.it/cgi-bin/cmd"
+        self.cmdhost = cmdhost
+        self.cmdresponse = cmdresponse
         self.Zsun = 0.0152
 
         self.cmdp = None
         self.default_kwargs = None
 
-        if version is not None:
-            field = "{}_{:.1f}".format(field, version)
-        self.update(field=field)
+        # update default attributes
+        self.update()
 
         self.limit_mh = (-2.9, 0.9)
         self.limit_logage = (1.1, 10.5)
@@ -174,9 +170,9 @@ class CMD:
     def welcome(self):
         print(str_cmd_welcome)
 
-    def update(self, field="/cgi-bin/cmd"):
+    def update(self):
         """ update hosts """
-        self.default_kwargs, self.cmdp = cmd_defaults(self.cmdhost + field)
+        self.default_kwargs, self.cmdp = cmd_defaults(self.cmdhost)
 
     def valid_logage(self, grid_logage):
         """ to validate grids of logAge, [M/H] """
@@ -184,7 +180,6 @@ class CMD:
                 or grid_logage[1] > self.limit_logage[1] \
                 or grid_logage[2] < 0:
             raise Warning("@CMD: invalid logAge grid!")
-            return False
         return True
 
     def valid_mh(self, grid_mh):
@@ -192,7 +187,6 @@ class CMD:
                 or grid_mh[1] > self.limit_mh[1] \
                 or grid_mh[2] < 0:
             raise Warning("@CMD: invalid [M/H] grid!")
-            return False
         return True
 
     def valid_z(self, grid_z):
@@ -200,7 +194,6 @@ class CMD:
                 or grid_z[1] > self.limit_z[1] \
                 or grid_z[2] < 0:
             raise Warning("@CMD: invalid Z grid!")
-            return False
         return True
 
     def get_one_isochrone(self, logage=9., z=0.0152, mh=None,
@@ -221,7 +214,7 @@ class CMD:
             raise ValueError(
                 "@CMD: no result for logage={} & z={} & [M/H]={}".format(logage,
                                                                          z, mh))
-        this_output = urlopen(self.cmdhost + this_output_link).read().decode(
+        this_output = urlopen(self.cmdresponse + this_output_link).read().decode(
             'utf8').split("\n")
 
         # convert to table and return
@@ -275,7 +268,7 @@ class CMD:
         print("@CMD: grid([M/H]) : ", _grid_mh)
         # grid_logage_for_parallel = (grid_logage[0],grid_logage[1],0)
         grid_mh_for_parallel = (grid_mh[0], grid_mh[1], grid_mh[2])
-        #print(_grid_logage, _grid_mh)
+        # print(_grid_logage, _grid_mh)
 
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose)(
             joblib.delayed(self.get_isochrone_set)(
@@ -387,7 +380,7 @@ class CMD:
         this_output_link = this_cmdp.output
         if this_output_link is None:
             raise ValueError("@CMD: no result for logage={} & z={} & [M/H]={}".format(grid_logage, grid_z, grid_mh))
-        this_output = urlopen(self.cmdhost + this_output_link).read().decode('utf8').split("\n")
+        this_output = urlopen(self.cmdresponse + this_output_link).read().decode('utf8').split("\n")
 
         # convert to table and return
         return convert_to_table(this_output)
@@ -400,7 +393,7 @@ class CMD:
         default_kwargs = deepcopy(self.default_kwargs)
 
         # photsys & imf
-        assert photsys_file in self.photsys_file
+        # assert photsys_file in self.photsys_file???
         photsys_file = "tab_mag_odfnew/tab_mag_" + photsys_file + ".dat"
         imf_file = "tab_imf/imf_" + imf_file + ".dat"
         default_kwargs["photsys_file"] = photsys_file
@@ -424,7 +417,7 @@ class CMD:
         default_kwargs.update(kwargs)
 
         # make url for request
-        this_url = self.cmdhost + "/cgi-bin/cmd?" + urlencode(default_kwargs)
+        this_url = self.cmdhost + "?" + urlencode(default_kwargs)
 
         return this_url
 
@@ -436,7 +429,7 @@ class CMD:
         default_kwargs = deepcopy(self.default_kwargs)
 
         # valid photsys_file
-        assert photsys_file in self.photsys_file
+        # assert photsys_file in self.photsys_file???
 
         # photsys & imf
         photsys_file = "tab_mag_odfnew/tab_mag_" + photsys_file + ".dat"
@@ -468,7 +461,7 @@ class CMD:
         default_kwargs.update(kwargs)
 
         # make url for request
-        this_url = self.cmdhost + "/cgi-bin/cmd?" + urlencode(default_kwargs)
+        this_url = self.cmdhost + "?" + urlencode(default_kwargs)
 
         return this_url
 
