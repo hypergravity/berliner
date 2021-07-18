@@ -10,9 +10,8 @@ from astropy.table import Table
 str_cmd_welcome = """
 Welcome to use berliner.parsec.cmd.CMD!
 This module is to help you download CMD isochrones automatically.
-This module is developed when CMD version is 3.2 but updated to 3.4 now.
-Presently, it seems that CMD 3.2 & 3.3 are not usable...
-Last test passed on 2021.03.31 @CMD 3.4
+This module is developed when CMD version is 3.2 but updated to 3.5 now.
+Last test passed on 2021.07.18 @CMD 3.5
 
 Homepage of CMD: http://stev.oapd.inaf.it/cgi-bin/cmd
 Homepage of berliner: https://github.com/hypergravity/berliner
@@ -92,7 +91,7 @@ class CMDParser(HTMLParser):
         return
 
 
-def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
+def cmd_defaults(cmdhost, photsys_file="YBC_2mass_spitzer", imf_file="salpeter"):
     # get cmd web default keywords
     cmd_data = urlopen(cmdhost).read().decode('utf8')
 
@@ -132,7 +131,7 @@ class CMD:
             defaults to None which means the most recent version
         """
 
-        self.cmdhost = "http://stev.oapd.inaf.it"
+        self.cmdhost = "http://stev.oapd.inaf.it/cgi-bin/cmd"
         self.Zsun = 0.0152
 
         self.cmdp = None
