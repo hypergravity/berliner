@@ -1,5 +1,5 @@
 from ._track import read_track, read_tracks_ptn
-from ._isochrone import read_isochrones, read_isochrones_ptn
+from ._isochrone import read_isochrones, read_isochrones_ptn, read_isochrones_basic
 from .bc import read_bc, read_bc_dir, read_bc_dir_one
 
 """
