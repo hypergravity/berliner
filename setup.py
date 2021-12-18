@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='berliner',
-    version='0.1.0',
+    version='0.1.1',
     author='Bo Zhang',
     author_email='bozhang@nao.cas.cn',
     description='Tools for stellar tracks & isochrones.',  # short description
