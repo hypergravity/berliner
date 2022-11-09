@@ -3,6 +3,7 @@ Tools for stellar tracks & isochrones.
 
 What is berliner? See below↓
 ![](berliner.png)
+Picture from [https://restaurantguru.com/Oben2-Heidelberg](https://restaurantguru.com/Oben2-Heidelberg).
 
 ## author
 Bo Zhang, [bozhang@nao.cas.cn](mailto:bozhang@nao.cas.cn)
@@ -11,17 +12,18 @@ Bo Zhang, [bozhang@nao.cas.cn](mailto:bozhang@nao.cas.cn)
 - [https://github.com/hypergravity/berliner](https://github.com/hypergravity/berliner)
 - [https://pypi.org/project/berliner/](https://pypi.org/project/berliner/)
 
-## install
-- for the latest **stable** version: `pip install berliner`
-- for the latest **github** version: `pip install git+git://github.com/hypergravity/berliner`
+## Installation
+```
+pip install git+https://github.com/hypergravity/berliner.git
+```
 
-## How to download isochrones from CMD 3.4 
+## How to download isochrones from CMD 3.7
 
-last tested: 2021-03-31
+last tested: 2022-11-09
 
 ```python
 # import CMD
-from berliner.parsec import CMD
+from berliner import CMD
 # initialize it
 c = CMD()
 

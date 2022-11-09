@@ -8,10 +8,10 @@ import numpy as np
 from astropy.table import Table
 
 str_cmd_welcome = """
-Welcome to use berliner.parsec.cmd.CMD!
+Welcome to use `berliner.parsec.cmd.CMD`!
 This module is to help you download CMD isochrones automatically.
-This module is developed when CMD version is 3.2 but updated to 3.5 now.
-Last test passed on 2021.07.18 @CMD 3.5
+It is originally developed when CMD version is 3.2 but updated to 3.7 now.
+Last test passed on 2022.11.09 @CMD 3.7
 
 Homepage of CMD: http://stev.oapd.inaf.it/cgi-bin/cmd
 Homepage of berliner: https://github.com/hypergravity/berliner
