@@ -470,7 +470,9 @@ def convert_to_table(this_output):
     """ convert isochrones to tables """
     line0 = np.where(["# Zini" in this_line for this_line in this_output])[0]
     # print(len(this_output), line0)
-    line1 = np.int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
+    # line1 = np.int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
+    # numpy.int was deprecated in NumPy 1.20 and was removed in NumPy 1.24
+    line1 = int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
     line = np.append(line0, line1)
     n_isocs = len(line) - 1
     # print(n_isocs)
