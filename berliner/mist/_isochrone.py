@@ -36,13 +36,13 @@ def read_isochrones(filepath, temp_dir="/tmp/", version="1.2"):
 
     print(re.split(r"\s+", s[5].strip())[1:])
     Yinit, Zinit, FeH, aFe, vvcrit = re.split(r"\s+", s[5].strip())[1:]
-    Yinit = np.float(Yinit)
-    Zinit = np.float(Zinit)
-    FeH = np.float(FeH)
-    aFe = np.float(aFe)
-    vvcrit = np.float(vvcrit)
-    Niso = np.int(re.split(r"\s+", s[7].strip())[-1])
-    Av = np.float(re.split(r"\s+", s[8].strip())[-1])
+    Yinit = float(Yinit)
+    Zinit = float(Zinit)
+    FeH = float(FeH)
+    aFe = float(aFe)
+    vvcrit = float(vvcrit)
+    Niso = int(re.split(r"\s+", s[7].strip())[-1])
+    Av = float(re.split(r"\s+", s[8].strip())[-1])
 
     meta = OrderedDict(MIST_version=MIST_version,
                        MESA_revision=MESA_revision,
@@ -113,23 +113,23 @@ def read_isochrones_basic(filepath, temp_dir="/tmp/", version="1.2"):
 
     # print(re.split(r"\s+", s[5].strip())[1:])
     Yinit, Zinit, FeH, aFe, vvcrit = re.split(r"\s+", s[4].strip())[1:]
-    Yinit = np.float(Yinit)
-    Zinit = np.float(Zinit)
-    FeH = np.float(FeH)
-    aFe = np.float(aFe)
-    vvcrit = np.float(vvcrit)
-    Niso = np.int(re.split(r"\s+", s[6].strip())[-1])
-    # Av = np.float(re.split(r"\s+", s[7].strip())[-1])
+    Yinit = float(Yinit)
+    Zinit = float(Zinit)
+    FeH = float(FeH)
+    aFe = float(aFe)
+    vvcrit = float(vvcrit)
+    Niso = int(re.split(r"\s+", s[6].strip())[-1])
+    # Av = float(re.split(r"\s+", s[7].strip())[-1])
 
     meta = OrderedDict(MIST_version=MIST_version,
                        MESA_revision=MESA_revision,
-                       #photo_sys=photo_sys,
+                       # photo_sys=photo_sys,
                        Yinit=Yinit,
                        Zinit=Zinit,
                        MH=FeH,
                        aFe=aFe,
                        vvcrit=vvcrit,
-                       #Av=Av,
+                       # Av=Av,
                        )
 
     # 3. find all isochrones
@@ -163,7 +163,7 @@ def read_isochrones_basic(filepath, temp_dir="/tmp/", version="1.2"):
     if version == "1.1" or version == "1.2":
         for i in range(len(isolist)):
             _lgmass = Column(np.log10(isolist[i]["initial_mass"]), "_lgmass")
-            _mhini = Column(np.ones((len(isolist[i],)), float) * FeH, "_mhini")
+            _mhini = Column(np.ones((len(isolist[i], )), float) * FeH, "_mhini")
             _lgage = Column(isolist[i]["log10_isochrone_age_yr"], "_lgage")
             _eep = Column(isolist[i]["EEP"], "_eep")
             isolist[i].add_columns((_lgmass, _mhini, _lgage, _eep))
