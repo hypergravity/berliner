@@ -19,7 +19,8 @@ Homepage of berliner: https://github.com/hypergravity/berliner
 
 
 class CMDParser(HTMLParser):
-    """ CMD website parser """
+    """CMD website parser"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.starttags = []
@@ -66,7 +67,7 @@ class CMDParser(HTMLParser):
                     self.default_kwargs[attr_dict["name"]] = attr_dict["value"]
                 else:
                     self.default_kwargs[attr_dict["name"]] = attr_dict["value"]
-                    #print(attr_dict)
+                    # print(attr_dict)
             else:
                 pass
                 # print(attr_dict)
@@ -75,10 +76,16 @@ class CMDParser(HTMLParser):
             if attrs[0][0] == "value":
                 if "tab_mag" in attrs[0][1]:
                     # photsys option
-                    self.photsys_file.append(attrs[0][1].replace("tab_mag_odfnew/tab_mag_","").replace(".dat",""))
+                    self.photsys_file.append(
+                        attrs[0][1]
+                        .replace("tab_mag_odfnew/tab_mag_", "")
+                        .replace(".dat", "")
+                    )
                 if "tab_imf" in attrs[0][1]:
                     # imf option
-                    self.imf_file.append(attrs[0][1].replace("tab_imf/imf_","").replace(".dat",""))
+                    self.imf_file.append(
+                        attrs[0][1].replace("tab_imf/imf_", "").replace(".dat", "")
+                    )
 
             # if used for output
             if attrs[0][0] == "href" and "../tmp/output" in attrs[0][1]:
@@ -93,7 +100,7 @@ class CMDParser(HTMLParser):
 
 def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
     # get cmd web default keywords
-    cmd_data = urlopen(cmdhost).read().decode('utf8')
+    cmd_data = urlopen(cmdhost).read().decode("utf8")
 
     # parse cmd web
     cmdp = CMDParser()
@@ -102,8 +109,8 @@ def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
     default_kwargs = cmdp.default_kwargs
     # assert photsys_file in cmdp.photsys_file???
     assert imf_file in cmdp.imf_file
-    photsys_file = "tab_mag_odfnew/tab_mag_"+photsys_file+".dat"
-    imf_file = "tab_imf/imf_"+imf_file+".dat"
+    photsys_file = "tab_mag_odfnew/tab_mag_" + photsys_file + ".dat"
+    imf_file = "tab_imf/imf_" + imf_file + ".dat"
     default_kwargs["photsys_file"] = photsys_file
     default_kwargs["imf_file"] = imf_file
 
@@ -117,9 +124,14 @@ def cmd_defaults(cmdhost, photsys_file="2mass_spitzer", imf_file="salpeter"):
 
 
 class CMD:
-    """ CMD class, to download isochrones automatically """
-    def __init__(self, cmdhost="http://stev.oapd.inaf.it/cgi-bin/cmd", cmdresponse="http://stev.oapd.inaf.it"):
-        """ PARSEC CMD
+    """CMD class, to download isochrones automatically"""
+
+    def __init__(
+            self,
+            cmdhost="http://stev.oapd.inaf.it/cgi-bin/cmd",
+            cmdresponse="http://stev.oapd.inaf.it",
+    ):
+        """PARSEC CMD
 
         Parameters
         ----------
@@ -171,61 +183,83 @@ class CMD:
         print(str_cmd_welcome)
 
     def update(self):
-        """ update hosts """
+        """update hosts"""
         self.default_kwargs, self.cmdp = cmd_defaults(self.cmdhost)
 
     def valid_logage(self, grid_logage):
-        """ to validate grids of logAge, [M/H] """
-        if grid_logage[0] < self.limit_logage[0] \
-                or grid_logage[1] > self.limit_logage[1] \
-                or grid_logage[2] < 0:
+        """to validate grids of logAge, [M/H]"""
+        if (
+                grid_logage[0] < self.limit_logage[0]
+                or grid_logage[1] > self.limit_logage[1]
+                or grid_logage[2] < 0
+        ):
             raise Warning("@CMD: invalid logAge grid!")
         return True
 
     def valid_mh(self, grid_mh):
-        if grid_mh[0] < self.limit_mh[0] \
-                or grid_mh[1] > self.limit_mh[1] \
-                or grid_mh[2] < 0:
+        if (
+                grid_mh[0] < self.limit_mh[0]
+                or grid_mh[1] > self.limit_mh[1]
+                or grid_mh[2] < 0
+        ):
             raise Warning("@CMD: invalid [M/H] grid!")
         return True
 
     def valid_z(self, grid_z):
-        if grid_z[0] < self.limit_z[0] \
-                or grid_z[1] > self.limit_z[1] \
-                or grid_z[2] < 0:
+        if grid_z[0] < self.limit_z[0] or grid_z[1] > self.limit_z[1] or grid_z[2] < 0:
             raise Warning("@CMD: invalid Z grid!")
         return True
 
-    def get_one_isochrone(self, logage=9., z=0.0152, mh=None,
-                          photsys_file="2mass_spitzer", imf_file="salpeter",
-                          **kwargs):
-        """ get one isochrone """
+    def get_one_isochrone(
+            self,
+            logage=9.0,
+            z=0.0152,
+            mh=None,
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            **kwargs
+    ):
+        """get one isochrone"""
         # make url for request
-        this_url = self.get_one_isochrone_url(logage=logage, z=z, mh=mh,
-                                              photsys_file=photsys_file,
-                                              imf_file=imf_file, **kwargs)
+        this_url = self.get_one_isochrone_url(
+            logage=logage,
+            z=z,
+            mh=mh,
+            photsys_file=photsys_file,
+            imf_file=imf_file,
+            **kwargs
+        )
 
         # the output of request
-        this_req = urlopen(this_url).read().decode('utf8')
+        this_req = urlopen(this_url).read().decode("utf8")
         this_cmdp = CMDParser()
         this_cmdp.feed(this_req)
         this_output_link = this_cmdp.output
         if this_output_link is None:
             raise ValueError(
-                "@CMD: no result for logage={} & z={} & [M/H]={}".format(logage,
-                                                                         z, mh))
-        this_output = urlopen(self.cmdresponse + this_output_link).read().decode(
-            'utf8').split("\n")
+                "@CMD: no result for logage={} & z={} & [M/H]={}".format(logage, z, mh)
+            )
+        this_output = (
+            urlopen(self.cmdresponse + this_output_link)
+            .read()
+            .decode("utf8")
+            .split("\n")
+        )
 
         # convert to table and return
         return convert_to_table(this_output)
 
-    def get_isochrone_grid_mh(self, grid_logage=(8, 9, 0.1),
-                              grid_mh=(-2.5, 0.5, 0.1),
-                              photsys_file="2mass_spitzer",
-                              imf_file="salpeter", n_jobs=1, verbose=10,
-                              **kwargs):
-        """ get isochrone grid
+    def get_isochrone_grid_mh(
+            self,
+            grid_logage=(8, 9, 0.1),
+            grid_mh=(-2.5, 0.5, 0.1),
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            n_jobs=1,
+            verbose=10,
+            **kwargs
+    ):
+        """get isochrone grid
 
         Parameters
         ----------
@@ -262,8 +296,10 @@ class CMD:
         n_mh = np.round((grid_mh[1] - grid_mh[0]) / grid_mh[2]) + 1
         print("@CMD: n(logAge)={:.0f}, n([M/H])={:.0f}".format(n_logage, n_mh))
 
-        _grid_logage = np.arange(grid_logage[0], grid_logage[1]+grid_logage[2], grid_logage[2])
-        _grid_mh = np.arange(grid_mh[0], grid_mh[1]+grid_mh[2], grid_mh[2])
+        _grid_logage = np.arange(
+            grid_logage[0], grid_logage[1] + grid_logage[2], grid_logage[2]
+        )
+        _grid_mh = np.arange(grid_mh[0], grid_mh[1] + grid_mh[2], grid_mh[2])
         print("@CMD: grid(logAge): ", _grid_logage)
         print("@CMD: grid([M/H]) : ", _grid_mh)
         # grid_logage_for_parallel = (grid_logage[0],grid_logage[1],0)
@@ -272,26 +308,38 @@ class CMD:
 
         results = joblib.Parallel(n_jobs=n_jobs, verbose=verbose)(
             joblib.delayed(self.get_isochrone_set)(
-                grid_logage=(_logage, _logage, 0), grid_mh=grid_mh_for_parallel,
-                grid_z=None, photsys_file=photsys_file, imf_file=imf_file,
-                **kwargs) for _logage in _grid_logage)
+                grid_logage=(_logage, _logage, 0),
+                grid_mh=grid_mh_for_parallel,
+                grid_z=None,
+                photsys_file=photsys_file,
+                imf_file=imf_file,
+                **kwargs
+            )
+            for _logage in _grid_logage
+        )
         isocs = []
         for _ in results:
             isocs.extend(_)
 
         meshflat_gird_logage = np.hstack(
-            [_logage * np.ones_like(_grid_mh) for _logage in _grid_logage])
+            [_logage * np.ones_like(_grid_mh) for _logage in _grid_logage]
+        )
         meshflat_gird_mh = np.hstack([_grid_mh for _logage in _grid_logage])
 
         return meshflat_gird_logage, meshflat_gird_mh, isocs
 
-    def get_isochrone_grid_true(self, tgrid_logage=(8.1, 8.2, 8.3),
-                                tgrid_mh=None,
-                                tgrid_z=None,
-                                photsys_file="2mass_spitzer",
-                                imf_file="salpeter", n_jobs=1, verbose=10,
-                                **kwargs):
-        """ get isochrone grid via true grid arrays
+    def get_isochrone_grid_true(
+            self,
+            tgrid_logage=(8.1, 8.2, 8.3),
+            tgrid_mh=None,
+            tgrid_z=None,
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            n_jobs=1,
+            verbose=10,
+            **kwargs
+    ):
+        """get isochrone grid via true grid arrays
 
         Parameters
         ----------
@@ -331,13 +379,21 @@ class CMD:
             assert np.all(tgrid_z > self.limit_z[0])
             assert np.all(tgrid_z < self.limit_z[1])
 
-            flat_logage, flat_z = [_.flatten() for _ in np.meshgrid(tgrid_logage, tgrid_z)]
+            flat_logage, flat_z = [
+                _.flatten() for _ in np.meshgrid(tgrid_logage, tgrid_z)
+            ]
 
             isocs = joblib.Parallel(n_jobs=n_jobs, verbose=verbose)(
                 joblib.delayed(self.get_one_isochrone)(
-                    logage=_logage, z=_z, mh=None,
-                    photsys_file=photsys_file, imf_file=imf_file,
-                    **kwargs) for _logage, _z in zip(flat_logage, flat_z))
+                    logage=_logage,
+                    z=_z,
+                    mh=None,
+                    photsys_file=photsys_file,
+                    imf_file=imf_file,
+                    **kwargs
+                )
+                for _logage, _z in zip(flat_logage, flat_z)
+            )
 
             return flat_logage, flat_z, isocs
 
@@ -350,45 +406,78 @@ class CMD:
             assert np.all(tgrid_mh > self.limit_mh[0])
             assert np.all(tgrid_mh < self.limit_mh[1])
 
-            flat_logage, flat_mh = [_.flatten() for _ in np.meshgrid(tgrid_logage, tgrid_mh)]
+            flat_logage, flat_mh = [
+                _.flatten() for _ in np.meshgrid(tgrid_logage, tgrid_mh)
+            ]
 
             isocs = joblib.Parallel(n_jobs=n_jobs, verbose=verbose)(
                 joblib.delayed(self.get_one_isochrone)(
-                    logage=_logage, z=None, mh=_mh,
-                    photsys_file=photsys_file, imf_file=imf_file,
-                    **kwargs) for _logage, _mh in zip(flat_logage, flat_mh))
+                    logage=_logage,
+                    z=None,
+                    mh=_mh,
+                    photsys_file=photsys_file,
+                    imf_file=imf_file,
+                    **kwargs
+                )
+                for _logage, _mh in zip(flat_logage, flat_mh)
+            )
 
             return flat_logage, flat_mh, isocs
 
         else:
             raise ValueError("@CMD: invalid input!")
 
-    def get_isochrone_set(self, grid_logage=(8,9,0.1), grid_mh=(-2.5,0.5,0.1),
-                          grid_z=None, photsys_file="2mass_spitzer", imf_file="salpeter",
-                          **kwargs):
-        """ to get a set of isochrones via web """
+    def get_isochrone_set(
+            self,
+            grid_logage=(8, 9, 0.1),
+            grid_mh=(-2.5, 0.5, 0.1),
+            grid_z=None,
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            **kwargs
+    ):
+        """to get a set of isochrones via web"""
         # make url for request
-        this_url = self.get_isochrone_set_url(grid_logage=grid_logage,
-                                              grid_mh=grid_mh, grid_z=grid_z,
-                                              photsys_file=photsys_file,
-                                              imf_file=imf_file, **kwargs)
+        this_url = self.get_isochrone_set_url(
+            grid_logage=grid_logage,
+            grid_mh=grid_mh,
+            grid_z=grid_z,
+            photsys_file=photsys_file,
+            imf_file=imf_file,
+            **kwargs
+        )
 
         # the output of request
-        this_req = urlopen(this_url).read().decode('utf8')
+        this_req = urlopen(this_url).read().decode("utf8")
         this_cmdp = CMDParser()
         this_cmdp.feed(this_req)
         this_output_link = this_cmdp.output
         if this_output_link is None:
-            raise ValueError("@CMD: no result for logage={} & z={} & [M/H]={}".format(grid_logage, grid_z, grid_mh))
-        this_output = urlopen(self.cmdresponse + this_output_link).read().decode('utf8').split("\n")
+            raise ValueError(
+                "@CMD: no result for logage={} & z={} & [M/H]={}".format(
+                    grid_logage, grid_z, grid_mh
+                )
+            )
+        this_output = (
+            urlopen(self.cmdresponse + this_output_link)
+            .read()
+            .decode("utf8")
+            .split("\n")
+        )
 
         # convert to table and return
         return convert_to_table(this_output)
 
-    def get_one_isochrone_url(self, logage=9., z=0.0152, mh=None,
-                              photsys_file="2mass_spitzer", imf_file="salpeter",
-                              **kwargs):
-        """ generate url """
+    def get_one_isochrone_url(
+            self,
+            logage=9.0,
+            z=0.0152,
+            mh=None,
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            **kwargs
+    ):
+        """generate url"""
         # default keywords
         default_kwargs = deepcopy(self.default_kwargs)
 
@@ -421,10 +510,16 @@ class CMD:
 
         return this_url
 
-    def get_isochrone_set_url(self, grid_logage=(8,9,0.1), grid_mh=(-2.5,0.5,0.1),
-                              grid_z=None, photsys_file="2mass_spitzer", imf_file="salpeter",
-                              **kwargs):
-        """ generate url """
+    def get_isochrone_set_url(
+            self,
+            grid_logage=(8, 9, 0.1),
+            grid_mh=(-2.5, 0.5, 0.1),
+            grid_z=None,
+            photsys_file="2mass_spitzer",
+            imf_file="salpeter",
+            **kwargs
+    ):
+        """generate url"""
         # default keywords
         default_kwargs = deepcopy(self.default_kwargs)
 
@@ -467,25 +562,35 @@ class CMD:
 
 
 def convert_to_table(this_output):
-    """ convert isochrones to tables """
+    """convert isochrones to tables"""
     line0 = np.where(["# Zini" in this_line for this_line in this_output])[0]
     # print(len(this_output), line0)
     # line1 = np.int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
     # numpy.int was deprecated in NumPy 1.20 and was removed in NumPy 1.24
-    line1 = int(np.where(["#isochrone terminated" in this_line for this_line in this_output])[0])
+    line1 = int(
+        np.where(["#isochrone terminated" in this_line for this_line in this_output])[0]
+    )
     line = np.append(line0, line1)
     n_isocs = len(line) - 1
     # print(n_isocs)
 
     if n_isocs == 1:
         # only one table
-        isoc = Table.read(this_output[line[0]:line[1]], format="ascii.commented_header")
+        isoc = Table.read(
+            this_output[line[0]: line[1]], format="ascii.commented_header"
+        )
         return isoc
     elif n_isocs > 1:
         # multiple tables
         # print(line)
-        isocs = [Table.read(this_output[line[i]:line[i+1]], format="ascii.commented_header") for i in range(len(line)-1)]
+        isocs = [
+            Table.read(
+                this_output[line[i]: line[i + 1]], format="ascii.commented_header"
+            )
+            for i in range(len(line) - 1)
+        ]
         return isocs
     else:
         raise ValueError(
-            "@CMD: error when converting tables! no isochrone found, line0 = ", line0)
+            "@CMD: error when converting tables! no isochrone found, line0 = ", line0
+        )
