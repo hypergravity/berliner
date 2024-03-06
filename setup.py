@@ -3,9 +3,17 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r") as f:
+    requirements = [
+        req.strip()
+        for req in f.readlines()
+        if not req.startswith("#") and req.__contains__("==")
+    ]
+
+
 setuptools.setup(
     name='berliner',
-    version='0.2.0',
+    version='0.2.1',
     author='Bo Zhang',
     author_email='bozhang@nao.cas.cn',
     description='Tools for stellar tracks & isochrones.',  # short description
@@ -21,9 +29,11 @@ setuptools.setup(
                  "Programming Language :: Python :: 3.7",
                  "Topic :: Scientific/Engineering :: Physics",
                  "Topic :: Scientific/Engineering :: Astronomy"],
-    package_dir={'berliner': 'berliner',
-                 'ezpadova': 'ezpadova'},
-    package_data={'ezpadova': ['*.json']},
-    include_package_data=True,
-    requires=['numpy', 'scipy', 'emcee', 'regli', 'joblib']
+    include_package_data=True,  # 设置包含随包数据
+    # package_data={  # 具体随包数据路径
+    #     "berliner": ["data/*"],
+    # },
+    install_requires=requirements,
+    python_requires=">=3.11",
+
 )
