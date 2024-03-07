@@ -2,47 +2,52 @@ import glob
 import re
 from collections import OrderedDict
 import copy
+import warnings
 
 import numpy as np
 from astropy.table import Table, Column
 from joblib import Parallel, delayed
 
-Zsun = 0.0142857
+ZSUN = 0.0142857  # ref:
 
 
-def read_tracks_ptn(
-    ptn="./*.track.eep", colnames=None, n_jobs=-1, verbose=5, metatable=True
+def load_tracks(
+    pattern: str = "./*.track.eep",
+    n_jobs: int = -1,
+    verbose: int = 5,
 ):
     """read multiple MIST track files"""
-    fps = np.sort(glob.glob(ptn))
-    print("@mist: reading tracks ...")
+    fps = np.sort(glob.glob(pattern))
+    print(f"@mist: reading {len(fps)} tracks ...")
     track_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
-        delayed(read_track)(fp, colnames) for fp in fps
+        delayed(load_track)(fp) for fp in fps
     )
+    params = np.array([track.meta["params"] for track in track_list])
+    # meta0 = copy.deepcopy(track_list[0].meta)
+    # meta0.pop("EEPs")
+    # names = tuple(meta0.keys())
+    #
+    # meta_data_rows = []
+    # for track in track_list:
+    #     meta = copy.deepcopy(track.meta)
+    #     meta.pop("EEPs")
+    #     meta_data_rows.append(tuple(meta.values()))
+    #
+    # if not metatable:
+    #     return track_list
+    # else:
+    #     print("@mist: making meta table ...")
+    #     the_metatable = Table(rows=meta_data_rows, names=names)
+    #     return track_list, the_metatable
+    return track_list, params
 
-    meta0 = copy.deepcopy(track_list[0].meta)
-    meta0.pop("EEPs")
-    names = tuple(meta0.keys())
 
-    meta_data_rows = []
-    for track in track_list:
-        meta = copy.deepcopy(track.meta)
-        meta.pop("EEPs")
-        meta_data_rows.append(tuple(meta.values()))
-
-    if not metatable:
-        return track_list
-    else:
-        print("@mist: making meta table ...")
-        the_metatable = Table(rows=meta_data_rows, names=names)
-        return track_list, the_metatable
-
-
-def read_track(fp, colnames=None):
+def load_track(fp: str):
     """read MIST eep tracks"""
     # read lines
-    f = open(fp, "r+")
-    s = f.readlines()
+    # print(f"reading track ... {fp}")
+    with open(fp, "r") as f:
+        s = f.readlines()
 
     # get info
     MIST_version = re.split(r"\s+", s[0].strip())[-1]
@@ -56,6 +61,7 @@ def read_track(fp, colnames=None):
     vvcrit = float(vvcrit)
 
     initial_mass, N_pts, N_EEP, N_col, phase, type_ = re.split(r"\s+", s[7].strip())[1:]
+    # print(initial_mass, N_pts, N_EEP, N_col, phase, type_)
     initial_mass = float(initial_mass)
     N_pts = int(N_pts)
     N_EEP = int(N_EEP)
@@ -66,21 +72,28 @@ def read_track(fp, colnames=None):
     # eep = np.arange(EEPs[0], EEPs[-1] + 1) sometimes inconsistent with data
 
     # add eep column
-    # _eep
+    # eep
     t = Table.read(s[11:], format="ascii.commented_header")
     eep = np.arange(EEPs[0], EEPs[0] + len(t))
-    eep_ok = eep[-1] == EEPs[-1] + 1
-    t.add_column(Column(eep, "_eep"))
-    # _lgmass
-    t.add_column(Column(np.ones(len(t)) * np.log10(initial_mass), "_lgmass"))
-    # _lgage
-    t.add_column(Column(np.log10(t["star_age"].data), "_lgage"))
-    # _feh
-    t.add_column(Column(np.ones(len(t)) * FeH, "_feh_ini"))
-    t.add_column(Column(t["log_surf_z"] - np.log10(Zsun), "_feh"))
+    eep_consistency = eep[-1] == EEPs[-1]
+
+    if not eep_consistency:
+        warnings.warn(f"Inconsistent EEPs for {fp}", category=UserWarning)
+
+    t.add_column(Column(eep, "eep"))
+    # log_mass
+    t.add_column(Column(np.ones(len(t)) * np.log10(initial_mass), "log_mass"))
+    # log_age
+    t.add_column(Column(np.log10(t["star_age"].data), "log_age"))
+    # feh_ini feh
+    t.add_column(Column(np.ones(len(t)) * FeH, "feh_ini"))
+    t.add_column(Column(t["log_surf_z"] - np.log10(ZSUN), "feh"))
 
     # add meta info
     meta = OrderedDict(
+        params=[initial_mass, FeH],
+        fp=fp,
+        eep_consistency=eep_consistency,
         MIST_version=MIST_version,
         MESA_revision=MESA_revision,
         Yinit=Yinit,
@@ -93,22 +106,12 @@ def read_track(fp, colnames=None):
         N_EEP=N_EEP,
         N_col=N_col,
         phase=phase,
-        type_=type_,
+        type=type_,
         EEPs=EEPs,
         EEP0=EEPs[0],
         EEP1=EEPs[-1],
-        EEP1ACT=EEPs[0] + len(t),
-        EEPOK=eep_ok,
+        EEP1ACT=EEPs[0] + len(t) - 1,
         INTERP=("_INTERP" in fp),
     )
     t.meta = meta
-
-    if colnames is None:
-        return t
-    else:
-        for colname in colnames:
-            try:
-                assert colname in t.colnames
-            except AssertionError as ae:
-                raise (ae("{} not in track.colnames!!!".format(colname)))
-        return t[colnames]
+    return t
