@@ -100,7 +100,9 @@ class MesaData:
             self.header_names,
         ) = state
 
-    def __init__(self, file_name=join(".", "LOGS", "history.data"), file_type=None):
+    def __init__(
+            self, file_name=join("../mesa_reader", "LOGS", "history.data"), file_type=None
+    ):
         """Make a MesaData object from a Mesa output file.
 
         Reads a profile or history output file from mesa. Assumes a file with
@@ -758,7 +760,7 @@ class MesaProfileIndex:
         cls.index_names = name_arr
         return name_arr
 
-    def __init__(self, file_name=join(".", "LOGS", "profiles.index")):
+    def __init__(self, file_name=join("../mesa_reader", "LOGS", "profiles.index")):
         self.file_name = file_name
         self.index_data = None
         self.model_number_string = ""
