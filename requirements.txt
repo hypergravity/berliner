@@ -3,4 +3,3 @@ scipy
 emcee
 regli
 joblib
-git+https://github.com/wmwolf/py_mesa_reader.git
