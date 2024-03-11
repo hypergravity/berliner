@@ -4,11 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r") as f:
-    requirements = [
-        req.strip()
-        for req in f.readlines()
-        if not req.startswith("#") and req.__contains__("==")
-    ]
+    requirements = [req.strip() for req in f.readlines() if not req.startswith("#")]
 
 setuptools.setup(
     name="berliner",
@@ -30,8 +26,8 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Physics",
         "Topic :: Scientific/Engineering :: Astronomy",
     ],
-    include_package_data=True,  # 设置包含随包数据
-    # package_data={  # 具体随包数据路径
+    include_package_data=True,
+    # package_data={
     #     "berliner": ["data/*"],
     # },
     install_requires=requirements,
