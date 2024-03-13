@@ -35,7 +35,7 @@ class EEPNotFoundError(Exception):
 
 class PrimaryEEP:
     def __init__(self):
-        self.EEPs = {}
+        self.EEPs = {}  # so far not used
 
     @staticmethod
     def get_EEPs_low_mass(track: Table):
@@ -60,6 +60,27 @@ class PrimaryEEP:
             idx_TPAGB=idx_TPAGB,
             idx_PostAGB=idx_PostAGB,
             idx_WDCS=idx_WDCS,
+        )
+
+    @staticmethod
+    def get_EEPs_high_mass(track: Table):
+        idx_PreMS = PrimaryEEP.get_PreMS_EEP(track)
+        idx_ZAMS = PrimaryEEP.get_ZAMS_EEP(track, idx_PreMS=idx_PreMS)
+        idx_IAMS = PrimaryEEP.get_IAMS_EEP(track, idx_ZAMS=idx_ZAMS)
+        idx_TAMS = PrimaryEEP.get_TAMS_EEP(track, idx_IAMS=idx_IAMS)
+        idx_RGBTip = PrimaryEEP.get_RGBTip_EEP(track, idx_TAMS=idx_TAMS)
+        idx_ZAHB = PrimaryEEP.get_ZAHB_EEP(track, idx_RGBTip=idx_RGBTip)
+        idx_TAHB = PrimaryEEP.get_TAHB_EEP(track, idx_ZAHB=idx_ZAHB)
+        idx_Cburn = PrimaryEEP.get_CBurn_EEP(track, idx_TAHB=idx_TAHB)
+        return dict(
+            idx_PreMS=idx_PreMS,
+            idx_ZAMS=idx_ZAMS,
+            idx_IAMS=idx_IAMS,
+            idx_TAMS=idx_TAMS,
+            idx_RGBTip=idx_RGBTip,
+            idx_ZAHB=idx_ZAHB,
+            idx_TAHB=idx_TAHB,
+            idx_Cburn=idx_Cburn,
         )
 
     @staticmethod
