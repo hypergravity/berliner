@@ -1,3 +1,8 @@
+"""
+Copied from: https://github.com/wmwolf/py_mesa_reader
+Commit: 95d93540130db87c30dfba7d81670e79ef6a3826 (2 years ago)
+Documentation: https://billwolf.space/py_mesa_reader/
+"""
 import os
 from os.path import join
 import re
