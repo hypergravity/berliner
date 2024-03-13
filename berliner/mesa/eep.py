@@ -86,9 +86,9 @@ class PrimaryEEP:
 
             for i in range(idx_PreMS, len(track)):
                 if (
-                        track[i][COLNAMES["log_LH"]] - track[i][COLNAMES["log_L"]]
-                        > np.log10(LH_fraction)
-                        and track[i][COLNAMES["center_h1"]] > center_h1_threshold
+                    track[i][COLNAMES["log_LH"]] - track[i][COLNAMES["log_L"]]
+                    > np.log10(LH_fraction)
+                    and track[i][COLNAMES["center_h1"]] > center_h1_threshold
                 ):
                     return i
         elif kind == 3:
@@ -96,8 +96,8 @@ class PrimaryEEP:
             Xmax = track[idx_PreMS][COLNAMES["center_h1"]]
             Xmin = Xmax - 1e-3
             ZAMS1 = (
-                    np.where(track[idx_PreMS:][COLNAMES["center_h1"]] < Xmin)[0][0]
-                    + idx_PreMS
+                np.where(track[idx_PreMS:][COLNAMES["center_h1"]] < Xmin)[0][0]
+                + idx_PreMS
             )
             ZAMS3 = np.argmax(track[idx_PreMS:ZAMS1][COLNAMES["log_g"]]) + idx_PreMS
             return ZAMS3
@@ -119,8 +119,8 @@ class PrimaryEEP:
 
         # for very-low-mass stars, (<0.5Msun)
         if (
-                track[0][COLNAMES["star_mass"]] < 0.5
-                and track[-1][COLNAMES["star_age"]] > 1.5e10
+            track[0][COLNAMES["star_mass"]] < 0.5
+            and track[-1][COLNAMES["star_age"]] > 1.5e10
         ):
             return len(track) - 1
         return -1
@@ -140,8 +140,8 @@ class PrimaryEEP:
 
         # for very-low-mass stars, (<0.5Msun)
         if (
-                track[0][COLNAMES["star_mass"]] < 0.5
-                and track[-1][COLNAMES["star_age"]] > 1.5e10
+            track[0][COLNAMES["star_mass"]] < 0.5
+            and track[-1][COLNAMES["star_age"]] > 1.5e10
         ):
             return len(track) - 1
         return -1
@@ -158,8 +158,8 @@ class PrimaryEEP:
         idx_center_he4_drop = -1
         for idx_center_he4_drop in range(idx_TAMS, len(track)):
             if (
-                    track[idx_center_he4_drop][COLNAMES["center_he4"]]
-                    < center_he4_tams - 0.01
+                track[idx_center_he4_drop][COLNAMES["center_he4"]]
+                < center_he4_tams - 0.01
             ):
                 break
         if idx_center_he4_drop < 0:
@@ -185,8 +185,8 @@ class PrimaryEEP:
         idx_center_he4_drop = -1
         for idx_center_he4_drop in range(idx_RGBTip, len(track)):
             if (
-                    track[idx_center_he4_drop][COLNAMES["center_he4"]]
-                    < center_he4_RGBTip - 0.03
+                track[idx_center_he4_drop][COLNAMES["center_he4"]]
+                < center_he4_RGBTip - 0.03
             ):
                 break
 
@@ -214,9 +214,9 @@ class PrimaryEEP:
         # for high-mass stars only
         for i in range(idx_TAHB, len(track)):
             if (
-                    track[i][COLNAMES["center_h1"]] < 1e-8
-                    and track[i][COLNAMES["center_he4"]] < 1e-8
-                    and track[i][COLNAMES["center_c12"]] < 1e-4
+                track[i][COLNAMES["center_h1"]] < 1e-8
+                and track[i][COLNAMES["center_he4"]] < 1e-8
+                and track[i][COLNAMES["center_c12"]] < 1e-4
             ):
                 return i
         return -1
@@ -228,10 +228,10 @@ class PrimaryEEP:
             return -1
         for i in range(idx_TAHB, len(track)):
             if (
-                    track[i][COLNAMES["center_he4"]] < 1e-6  # Yc<10^-6
-                    and track[i][COLNAMES["he_core_mass"]]  # He shell mass < 0.1 Msun
-                    - track[i][COLNAMES["c_core_mass"]]
-                    < 0.1
+                track[i][COLNAMES["center_he4"]] < 1e-6  # Yc<10^-6
+                and track[i][COLNAMES["he_core_mass"]]  # He shell mass < 0.1 Msun
+                - track[i][COLNAMES["c_core_mass"]]
+                < 0.1
             ):
                 return i
         return -1
@@ -247,8 +247,8 @@ class PrimaryEEP:
             # has post-AGB
             for i in range(idx_TPAGB, len(track)):
                 if (
-                        track[i][COLNAMES["c_core_mass"]] / track[i][COLNAMES["star_mass"]]
-                        > 0.8
+                    track[i][COLNAMES["c_core_mass"]] / track[i][COLNAMES["star_mass"]]
+                    > 0.8
                 ):
                     return i
             return -1
