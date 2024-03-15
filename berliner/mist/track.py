@@ -5,6 +5,7 @@ import copy
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 from astropy.table import Table, Column
 from joblib import Parallel, delayed
 
@@ -12,11 +13,11 @@ ZSUN = 0.0142857  # ref:
 
 
 def load_tracks(
-    pattern: str = "./*.track.eep",
+    pattern: str = "./*.isochrone.eep",
     n_jobs: int = -1,
     verbose: int = 5,
-):
-    """read multiple MIST track files"""
+) -> tuple[list[Table], npt.NDArray]:
+    """read multiple MIST isochrone files"""
     fps = np.sort(glob.glob(pattern))
     print(f"@mist: reading {len(fps)} tracks ...")
     track_list = Parallel(n_jobs=n_jobs, verbose=verbose)(
@@ -28,8 +29,8 @@ def load_tracks(
     # names = tuple(meta0.keys())
     #
     # meta_data_rows = []
-    # for track in track_list:
-    #     meta = copy.deepcopy(track.meta)
+    # for isochrone in track_list:
+    #     meta = copy.deepcopy(isochrone.meta)
     #     meta.pop("EEPs")
     #     meta_data_rows.append(tuple(meta.values()))
     #
@@ -42,10 +43,10 @@ def load_tracks(
     return track_list, params
 
 
-def load_track(fp: str):
+def load_track(fp: str) -> Table:
     """read MIST eep tracks"""
     # read lines
-    # print(f"reading track ... {fp}")
+    # print(f"reading isochrone ... {fp}")
     with open(fp, "r") as f:
         s = f.readlines()
 
