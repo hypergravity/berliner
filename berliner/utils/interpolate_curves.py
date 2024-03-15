@@ -19,14 +19,23 @@ def eval_curve_length(x: npt.NDArray, metric=None):
         dx = np.diff(x, axis=0, prepend=[x[0]])
     else:
         dx = np.diff(x, axis=0, prepend=[x[0]]) * metric
-    return np.cumsum(np.sqrt(np.sum(dx ** 2, axis=1)))
+    return np.sqrt(np.sum(dx**2, axis=1))
+
+
+def eval_cumulated_curve_length(x: npt.NDArray, metric=None):
+    """x is 2D array"""
+    if metric is None:
+        dx = np.diff(x, axis=0, prepend=[x[0]])
+    else:
+        dx = np.diff(x, axis=0, prepend=[x[0]]) * metric
+    return np.cumsum(np.sqrt(np.sum(dx**2, axis=1)))
 
 
 def interpolate_curve(
-        xs: Iterable[npt.NDArray],
-        ws: Iterable[npt.NDArray],
-        metric: Optional[npt.NDArray] = None,
-        n_interp=None,
+    xs: Iterable[npt.NDArray],
+    ws: Iterable[npt.NDArray],
+    metric: Optional[npt.NDArray] = None,
+    n_interp=None,
 ) -> npt.NDArray:
     nx = len(xs)
     ndim = xs[0].shape[1]
@@ -71,8 +80,8 @@ def interpolate_curve(
 
 def test_diff_prepend():
     x = np.linspace(0, 1.0, 100)
-    y1 = x ** 0 * 1
-    y2 = x ** 0 * 2
+    y1 = x**0 * 1
+    y2 = x**0 * 2
     # y1 = x**1+.5+10
 
     plt.plot(x, y1)
@@ -85,3 +94,43 @@ def test_diff_prepend():
     plt.plot(x, ymean)
     # plt.plot(x, np.cumsum(y1))
     # plt.plot(x, np.hstack([]))
+
+
+def angle_to_weight(angle: float, base: float = 10.0) -> float:
+    # power-laws are better than linear
+    # high curvature points dominates the integration
+    return base**angle
+
+
+def eval_angle(vec1, vec2, fill_value=0.0):
+    # Calculate the length of the vectors
+    norm_a = np.linalg.norm(vec1)
+    norm_b = np.linalg.norm(vec2)
+    # Calculate the dot product
+    dot_product = np.dot(vec1, vec2)
+    # Calculate the cosine of the angle
+    cos_theta = dot_product / (norm_a * norm_b)
+    # Calculate the angle
+    theta = np.arccos(cos_theta)
+    return theta if np.isfinite(theta) else fill_value
+
+
+x = np.random.rand(10, 3)
+
+
+def angle_weighted_cumulated_curve_length(
+    x: npt.NDArray,
+    metric: Optional[npt.ArrayLike] = None,
+    angle_weight_base: float = 10.0,
+) -> npt.NDArray:
+    n_pnt = x.shape[0]
+    dx_minus = np.diff(x, prepend=[x[0]], axis=0)
+    dx_plus = np.diff(x, append=[x[-1]], axis=0)
+    # calculate angle
+    angle = np.array([eval_angle(dx_minus[i], dx_plus[i]) for i in range(n_pnt)])
+    # calculate weight
+    angle_weight = angle_to_weight(angle, base=angle_weight_base)
+    # calculate curve length
+    curve_length = eval_curve_length(x, metric=metric)
+    # calculate angle-weighted curve length
+    return np.cumsum(angle_weight * curve_length)
