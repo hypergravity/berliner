@@ -4,17 +4,18 @@ import numpy.typing as npt
 from typing import Iterable, Optional
 
 
-def generate_3darc(z=0.0, r=1.0, npt=100):
-    x = np.zeros((npt, 3), dtype=float)
+def generate_3darc(z: float = 0.0, r: float = 1.0, n_pnt: int = 100):
+    """Generate 3D arc."""
+    x = np.zeros((n_pnt, 3), dtype=float)
     x[:, 2] = z
-    theta = np.linspace(0, np.pi / 2, npt)
+    theta = np.linspace(0, np.pi / 2, n_pnt)
     x[:, 0] = r * np.cos(theta)
     x[:, 1] = r * np.sin(theta)
     return x
 
 
-def eval_curve_length(x: npt.NDArray, metric=None):
-    """x is 2D array"""
+def eval_curve_length(x: npt.NDArray, metric: Optional[npt.ArrayLike] = None):
+    """Evaluate curve length for each chunk."""
     if metric is None:
         dx = np.diff(x, axis=0, prepend=[x[0]])
     else:
@@ -23,12 +24,52 @@ def eval_curve_length(x: npt.NDArray, metric=None):
 
 
 def eval_cumulated_curve_length(x: npt.NDArray, metric=None):
-    """x is 2D array"""
+    """Evaluate cumulated curve length."""
     if metric is None:
         dx = np.diff(x, axis=0, prepend=[x[0]])
     else:
         dx = np.diff(x, axis=0, prepend=[x[0]]) * metric
     return np.cumsum(np.sqrt(np.sum(dx**2, axis=1)))
+
+
+def angle_to_weight(angle: float, base: float = 10.0) -> float:
+    """Convert angle (radian) to weight.
+    Power-law is used to let weights dominated by high-curvature points.
+    """
+    return base**angle
+
+
+def eval_angle(vec1, vec2, fill_value=0.0):
+    """Evaluate the length of the vectors"""
+    norm_a = np.linalg.norm(vec1)
+    norm_b = np.linalg.norm(vec2)
+    # Calculate the dot product
+    dot_product = np.dot(vec1, vec2)
+    # Calculate the cosine of the angle
+    cos_theta = dot_product / (norm_a * norm_b)
+    # Calculate the angle
+    theta = np.arccos(cos_theta)
+    return theta if np.isfinite(theta) else fill_value
+
+
+def eval_angle_weighted_cumulated_curve_length(
+    x: npt.NDArray,
+    metric: Optional[npt.ArrayLike] = None,
+    angle_weight_base: float = 10.0,
+) -> npt.NDArray:
+    """Evaluate angle-weighted cumulated curve length."""
+    n_pnt = x.shape[0]
+    # calculate difference
+    dx_minus = np.diff(x, prepend=[x[0]], axis=0)
+    dx_plus = np.diff(x, append=[x[-1]], axis=0)
+    # calculate angle
+    angle = np.array([eval_angle(dx_minus[i], dx_plus[i]) for i in range(n_pnt)])
+    # calculate weight
+    angle_weight = angle_to_weight(angle, base=angle_weight_base)
+    # calculate curve length
+    curve_length = eval_curve_length(x, metric=metric)
+    # calculate angle-weighted curve length
+    return np.cumsum(angle_weight * curve_length)
 
 
 def interpolate_curve(
@@ -41,7 +82,7 @@ def interpolate_curve(
     ndim = xs[0].shape[1]
 
     # evaluate normalized curve length
-    curve_length = [eval_curve_length(xs[ix], metric) for ix in range(nx)]
+    curve_length = [eval_cumulated_curve_length(xs[ix], metric) for ix in range(nx)]
     curve_length_max = [curve_length[ix][-1] for ix in range(nx)]
     normalized_curve_length = [
         curve_length[ix] / curve_length_max[ix] for ix in range(nx)
@@ -94,43 +135,3 @@ def test_diff_prepend():
     plt.plot(x, ymean)
     # plt.plot(x, np.cumsum(y1))
     # plt.plot(x, np.hstack([]))
-
-
-def angle_to_weight(angle: float, base: float = 10.0) -> float:
-    # power-laws are better than linear
-    # high curvature points dominates the integration
-    return base**angle
-
-
-def eval_angle(vec1, vec2, fill_value=0.0):
-    # Calculate the length of the vectors
-    norm_a = np.linalg.norm(vec1)
-    norm_b = np.linalg.norm(vec2)
-    # Calculate the dot product
-    dot_product = np.dot(vec1, vec2)
-    # Calculate the cosine of the angle
-    cos_theta = dot_product / (norm_a * norm_b)
-    # Calculate the angle
-    theta = np.arccos(cos_theta)
-    return theta if np.isfinite(theta) else fill_value
-
-
-x = np.random.rand(10, 3)
-
-
-def angle_weighted_cumulated_curve_length(
-    x: npt.NDArray,
-    metric: Optional[npt.ArrayLike] = None,
-    angle_weight_base: float = 10.0,
-) -> npt.NDArray:
-    n_pnt = x.shape[0]
-    dx_minus = np.diff(x, prepend=[x[0]], axis=0)
-    dx_plus = np.diff(x, append=[x[-1]], axis=0)
-    # calculate angle
-    angle = np.array([eval_angle(dx_minus[i], dx_plus[i]) for i in range(n_pnt)])
-    # calculate weight
-    angle_weight = angle_to_weight(angle, base=angle_weight_base)
-    # calculate curve length
-    curve_length = eval_curve_length(x, metric=metric)
-    # calculate angle-weighted curve length
-    return np.cumsum(angle_weight * curve_length)
