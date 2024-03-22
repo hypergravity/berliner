@@ -13,8 +13,8 @@ module eep
 contains
 
     subroutine secondary_eep(t, s)
-        ! takes a regular track (read from history) and creates an
-        ! EEP track with a fixed number of regularly spaced points
+        ! takes a regular isochrone (read from history) and creates an
+        ! EEP isochrone with a fixed number of regularly spaced points
         ! requires that the primary EEPs have already been found.
         type(track), intent(in) :: t
         type(track), intent(out) :: s
@@ -28,7 +28,7 @@ contains
         s% v_div_vcrit = t% v_div_vcrit
         s% ncol = t% ncol
         s% star_type = t% star_type
-        !determine total number of EEPs in this track
+        !determine total number of EEPs in this isochrone
         num_p = 0
         num_s = 0
         do j = 1, primary
@@ -39,8 +39,8 @@ contains
                 endif
             endif
         enddo
-        if(eep_verbose) write(*, *) ' track, number of p, s eeps = ', i, num_p, num_s
-        ! identify the attributes of the new EEP track
+        if(eep_verbose) write(*, *) ' isochrone, number of p, s eeps = ', i, num_p, num_s
+        ! identify the attributes of the new EEP isochrone
         s% filename = t% filename
         s% initial_mass = t% initial_mass
         s% MESA_revision_number = t% MESA_revision_number
@@ -50,7 +50,7 @@ contains
         allocate(s% cols(s% ncol))
         s% cols = t% cols
 
-        ! allocate and fill new track
+        ! allocate and fill new isochrone
         allocate(s% tr(s% ncol, s% ntrack))
         allocate(s% dist(s% ntrack))
         allocate(s% eep(s% neep))
@@ -71,11 +71,11 @@ contains
     end subroutine secondary_eep
 
     subroutine eep_interpolate(t, j, k, s)
-        !t is the input track from MESA history file
-        !s is the EEP-based track under construction
+        !t_v12s is the input isochrone from MESA history file
+        !s is the EEP-based isochrone under construction
         !j is the primary EEP number
         !k is the secondary EEP number
-        !this routine takes a slice from t and interpolates into the
+        !this routine takes a slice from t_v12s and interpolates into the
         !corresponding slice in s
         type(track), intent(in) :: t
         integer, intent(in) :: j, k
@@ -128,7 +128,7 @@ contains
 
 
     subroutine primary_eep(t)
-        ! sets the locations of the primary EEPs in a track read from a history data file
+        ! sets the locations of the primary EEPs in a isochrone read from a history data file
         type(track), intent(inout) :: t
         integer :: ieep, inc
         t% EEP = 0 !initialize
@@ -145,7 +145,7 @@ contains
                 t% EEP(ieep) = CarbonBurn(t, t% EEP(ieep - 1) + inc)
             endif
         else !normal H star
-            !t% EEP(ieep) = PreMS_Tc(t,5.0d0,1); if(check(t,ieep)) return; ieep=ieep+1
+            !t_v12s% EEP(ieep) = PreMS_Tc(t_v12s,5.0d0,1); if(check(t_v12s,ieep)) return; ieep=ieep+1
             t% EEP(ieep) = PreMS_fudge(1); if(check(t, ieep)) return; ieep = ieep + 1
             t% EEP(ieep) = ZAMS(t, t% EEP(ieep - 1) + inc); if(check(t, ieep)) return; ieep = ieep + 1
             t% EEP(ieep) = TAMS(t, 3.5d-1, t% EEP(ieep - 1) + inc); if(check(t, ieep)) return; ieep = ieep + 1
@@ -260,12 +260,12 @@ contains
         ZAMS1 = i
 
         !!$    !test of L_H/L_tot > some fraction
-        !!$    LH = pow10(t% tr(i_logLH,i))
-        !!$    Lmin = Lfac * pow10(t% tr(i_logL,i))
+        !!$    LH = pow10(t_v12s% tr(i_logLH,i))
+        !!$    Lmin = Lfac * pow10(t_v12s% tr(i_logL,i))
         !!$    do while(LH > Lmin)
         !!$       i = i-1
-        !!$       LH = pow10(t% tr(i_logLH,i))
-        !!$       Lmin = Lfac * pow10(t% tr(i_logL,i))
+        !!$       LH = pow10(t_v12s% tr(i_logLH,i))
+        !!$       Lmin = Lfac * pow10(t_v12s% tr(i_logL,i))
         !!$    enddo
         !!$
         !!$    ZAMS2 = i

@@ -296,10 +296,10 @@ def test():
     print(eeps)
     fig, ax = plt.subplots(1, 1, figsize=(20, 5))
     plt.plot(np.log10(np.diff(t["star_age"])))
-    # plt.plot(t["log_dt"])
+    # plt.plot(t_v12s["log_dt"])
     plt.plot(t["log_Teff"], label="log_Teff")
-    # plt.plot(t["log_L"], label="log_L")
-    # plt.plot(t["center_h1"], label="h1")
+    # plt.plot(t_v12s["log_L"], label="log_L")
+    # plt.plot(t_v12s["center_h1"], label="h1")
     plt.plot(t["center_he4"], label="h4")
     plt.plot(t["log_L"], label="log_L")
     plt.plot(t["log_LH"], label="log_LH")
@@ -307,13 +307,7 @@ def test():
     plt.plot(t["log_center_T"], label="log_center_T")
     plt.plot(t["he_core_mass"], label="he_core_mass", lw=3)
     plt.plot(t["c_core_mass"], label="c_core_mass", lw=3)
-    ax.vlines(
-        [eeps[k] for k in eeps.keys()],
-        -4,
-        4,
-        color="k",
-        lw=5,
-    )
+    ax.vlines([eeps[k] for k in eeps.keys()], -4, 4, color="k", lw=5)
     for k in eeps.keys():
         ax.text(eeps[k], 5, k[4:])
         ax.text(eeps[k], 6, t["star_age"][eeps[k]], rotation=90)
