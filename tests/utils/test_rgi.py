@@ -2,6 +2,10 @@
 Test the performance of different methods in ``RegularGridInterpolator``.
 
 method_list = ["linear", "nearest", "slinear", "cubic", "quintic", "pchip"]
+
+Conclusion
+----------
+It seems ``cubic`` and ``pchip`` are the best methods.
 """
 
 import numpy as np
