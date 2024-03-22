@@ -4,8 +4,8 @@ from berliner.interpolate.interpolate_curves import generate_3darc, interpolate_
 """
 Test case 1: arcs
 """
-x1 = generate_3darc(z=0, r=2, npt=100)
-x2 = generate_3darc(z=1, r=1, npt=120)
+x1 = generate_3darc(z=0, r=2, n_pnt=100)
+x2 = generate_3darc(z=1, r=1, n_pnt=120)
 x_weighted = interpolate_curve([x1, x1, x2], [1, 1, 1])
 
 fig = plt.figure()
