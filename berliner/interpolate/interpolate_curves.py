@@ -3,6 +3,8 @@ import numpy as np
 import numpy.typing as npt
 from typing import Iterable, Optional
 
+__all__ = ["interpolate_curve"]
+
 
 def generate_3darc(z: float = 0.0, r: float = 1.0, n_pnt: int = 100):
     """Generate 3D arc."""

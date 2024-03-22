@@ -5,10 +5,11 @@ References
 ----------
 https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 """
-
 import numpy as np
 import numpy.typing as npt
 from scipy.interpolate import RegularGridInterpolator
+
+__all__ = ["RGI"]
 
 
 def flat_to_mesh(x_flat: npt.NDArray) -> list[npt.NDArray]:
