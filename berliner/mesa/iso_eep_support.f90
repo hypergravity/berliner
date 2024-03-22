@@ -75,7 +75,7 @@ module iso_eep_support
     integer, allocatable :: eep_interval(:) ! number of secondary EEPs
     ! between the primaries
 
-    !holds an evolutionary track, use an array of these for multiple tracks
+    !holds an evolutionary isochrone, use an array of these for multiple tracks
     type track
         character(len = file_path) :: filename, cmd_suffix
         character(len = 8) :: version_string
@@ -383,7 +383,7 @@ include 'num_binary_search.inc'
         ! EEP files much faster. so check to see if the .bin exists and,
         ! if it does, read it and be done. otherwise read the .data
         ! file and write a new .bin at the end.
-        ! time goes from t=2min to t<3sec for 94 tracks. tight!
+        ! time goes from t_v12s=2min to t_v12s<3sec for 94 tracks. tight!
         if(make_bin_tracks)then
             binfile = trim(history_dir) // '/' // trim(t% filename) // '.bin'
             inquire(file = binfile, exist = binfile_exists)
@@ -399,7 +399,7 @@ include 'num_binary_search.inc'
         ! .bins.  slow.
         open(newunit = io, file = trim(trim(history_dir) // '/' // t% filename), status = 'old', action = 'read')
         !read first 3 lines of header
-        !currently don't use all of this info, but could...
+        !currently don't_v12s use all of this info, but could...
         imass = 0
         iversion = 0
         do j = 1, 3
@@ -447,7 +447,7 @@ include 'num_binary_search.inc'
             read(io, *)
         enddo
 
-        !read track data
+        !read isochrone data
         do j = 1, t% ntrack
             read(io, '(a)', iostat = ierr) line
             if(ierr/=0) exit
@@ -461,7 +461,7 @@ include 'num_binary_search.inc'
         enddo
         close(io)
 
-        !compute distance along track
+        !compute distance along isochrone
         allocate(t% dist(t% ntrack))
         call distance_along_track(t)
         call set_star_type_from_history(t)
