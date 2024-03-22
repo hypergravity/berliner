@@ -1,37 +1,48 @@
 import numpy as np
 from emcee import EnsembleSampler
 
-from .ls import wls_simple
+from berliner.utils.ls import wls_simple
 
 
-class TGMMachine():
-    """ the TGM Machine class """
+class TGMMachine:
+    """the TGM Machine class"""
 
-    def __init__(self, isoc_stacked, tgm_cols=("teff", "logg", "_mhini"),
-                 tgm_sigma=(100, 0.2, 0.1), w_sigma=(100, 0.2, 0.1),
-                 pred_cols=("teff", "logg"), wcol="w"):
-        """ the input should be a stacked table of isochrones """
+    def __init__(
+        self,
+        isoc_stacked,
+        tgm_cols=("teff", "logg", "_mhini"),
+        tgm_sigma=(100, 0.2, 0.1),
+        w_sigma=(100, 0.2, 0.1),
+        pred_cols=("teff", "logg"),
+        wcol="metric",
+    ):
+        """the input should be a stacked table of isochrones"""
 
         self.data = isoc_stacked  # stacked isochrones
         self.tgm = np.array(isoc_stacked[tgm_cols].to_pandas())  # TGM array
         self.tgm_sigma = np.array(tgm_sigma).reshape(1, -1)  # TGM sigma
-        self.pred_array = np.array(
-            self.data[pred_cols].to_pandas())  # Qs to predict
+        self.pred_array = np.array(self.data[pred_cols].to_pandas())  # Qs to predict
         self.w = isoc_stacked[wcol].data  # weight array
         self.w_sigma = np.array(w_sigma).reshape(1, -1)
 
     def predict(self, test_tgm):
-        """ predict MLE of SED and weight at the given TGM position """
+        """predict MLE of SED and weight at the given TGM position"""
         test_tgm = np.array(test_tgm).reshape(1, -1)
-        test_w = self.w * np.exp(-0.5 * np.sum(((self.tgm - test_tgm) / self.tgm_sigma) ** 2., axis=1))
-        pred_result = np.sum(self.pred_array * test_w.reshape(-1, 1), axis=0) / np.sum(test_w)
+        test_w = self.w * np.exp(
+            -0.5 * np.sum(((self.tgm - test_tgm) / self.tgm_sigma) ** 2.0, axis=1)
+        )
+        pred_result = np.sum(self.pred_array * test_w.reshape(-1, 1), axis=0) / np.sum(
+            test_w
+        )
         # smooth weight in a wider volume
-        test_w = self.w * np.exp(-0.5 * np.sum(((self.tgm - test_tgm) / self.w_sigma) ** 2., axis=1))
+        test_w = self.w * np.exp(
+            -0.5 * np.sum(((self.tgm - test_tgm) / self.w_sigma) ** 2.0, axis=1)
+        )
         return pred_result, np.sum(test_w)
 
 
-class SED2TG():
-    """ the TG Machine class """
+class SED2TG:
+    """the TG Machine class"""
 
     def __init__(self, r, Alambda, p_bounds=None, phot_bands=[]):
         self.r = r
@@ -43,57 +54,119 @@ class SED2TG():
         sampler = self.runsample(*args, **kwargs)
         return np.median(sampler.flatchain, axis=0), np.std(sampler.flatchain, axis=0)
 
-    def runsample(self, sed_obs, sed_obs_err, vpi_obs, vpi_obs_err,
-                  Lvpi=1.0, Lprior=1.0, nsteps=(1000, 1000, 2000), p0try=None):
-
-        ndim = 4                # 4 stands for [Teff, logg, Av, DM]
-        nwalkers = len(p0try)   # number of chains
+    def runsample(
+        self,
+        sed_obs,
+        sed_obs_err,
+        vpi_obs,
+        vpi_obs_err,
+        Lvpi=1.0,
+        Lprior=1.0,
+        nsteps=(1000, 1000, 2000),
+        p0try=None,
+    ):
+        ndim = 4  # 4 stands for [Teff, logg, Av, DM]
+        nwalkers = len(p0try)  # number of chains
 
         for i in range(len(nsteps)):
             if i == 0:
                 # initialize sampler
-                sampler = EnsembleSampler(nwalkers, ndim, costfun,
-                                          args=(self.r, self.p_bounds,
-                                                self.Alambda, sed_obs,
-                                                sed_obs_err, vpi_obs,
-                                                vpi_obs_err, Lvpi, Lprior))
+                sampler = EnsembleSampler(
+                    nwalkers,
+                    ndim,
+                    costfun,
+                    args=(
+                        self.r,
+                        self.p_bounds,
+                        self.Alambda,
+                        sed_obs,
+                        sed_obs_err,
+                        vpi_obs,
+                        vpi_obs_err,
+                        Lvpi,
+                        Lprior,
+                    ),
+                )
                 # guess Av and DM for p0try
-                p0try = np.array([initial_guess(_, self.r, self.Alambda, sed_obs, sed_obs_err) for _ in p0try])
+                p0try = np.array(
+                    [
+                        initial_guess(_, self.r, self.Alambda, sed_obs, sed_obs_err)
+                        for _ in p0try
+                    ]
+                )
                 # run sampler
                 pos, _, __ = sampler.run_mcmc(p0try, nsteps[i])
             else:
                 # generate new p
-                p_rand = random_p(sampler, nloopmax=1000, method="mle",
-                                  costfun=costfun, args=(self.r, self.p_bounds,
-                                                         self.Alambda, sed_obs,
-                                                         sed_obs_err, vpi_obs,
-                                                         vpi_obs_err,
-                                                         Lvpi, Lprior))
+                p_rand = random_p(
+                    sampler,
+                    nloopmax=1000,
+                    method="mle",
+                    costfun=costfun,
+                    args=(
+                        self.r,
+                        self.p_bounds,
+                        self.Alambda,
+                        sed_obs,
+                        sed_obs_err,
+                        vpi_obs,
+                        vpi_obs_err,
+                        Lvpi,
+                        Lprior,
+                    ),
+                )
                 # reset sampler
                 sampler.reset()
                 # run at new p
                 pos1, lnprob1, rstate1 = sampler.run_mcmc(p_rand, nsteps[i])
         return sampler
 
-    def grid_search(self, test_sed_obs, test_sed_obs_err=None,
-                    test_vpi_obs=None, test_vpi_obs_err=None,
-                    Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1,
-                    cost_order=2, av_llim=0., return_est=False):
-        p_mle, p_mean, p_std = grid_search2(self.r, self.Alambda,
-                                            test_sed_obs, test_sed_obs_err,
-                                            test_vpi_obs, test_vpi_obs_err,
-                                            Lvpi, Lprior, sed_err_typical,
-                                            cost_order, av_llim, return_est)
-        sed_mean = self.r(p_mean[:2])[:-1]+self.Alambda*p_mean[2]+p_mean[3]
-        sed_rmse = np.sqrt(np.nanmean(np.square(sed_mean-test_sed_obs)))
+    def grid_search(
+        self,
+        test_sed_obs,
+        test_sed_obs_err=None,
+        test_vpi_obs=None,
+        test_vpi_obs_err=None,
+        Lvpi=1.0,
+        Lprior=1.0,
+        sed_err_typical=0.1,
+        cost_order=2,
+        av_llim=0.0,
+        return_est=False,
+    ):
+        p_mle, p_mean, p_std = grid_search2(
+            self.r,
+            self.Alambda,
+            test_sed_obs,
+            test_sed_obs_err,
+            test_vpi_obs,
+            test_vpi_obs_err,
+            Lvpi,
+            Lprior,
+            sed_err_typical,
+            cost_order,
+            av_llim,
+            return_est,
+        )
+        sed_mean = self.r(p_mean[:2])[:-1] + self.Alambda * p_mean[2] + p_mean[3]
+        sed_rmse = np.sqrt(np.nanmean(np.square(sed_mean - test_sed_obs)))
         return p_mle, p_mean, p_std, sed_rmse
 
 
-def grid_search2(r2, Alambda,
-                 test_sed_obs, test_sed_obs_err=None,
-                 test_vpi_obs=None, test_vpi_obs_err=None,
-                 Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
-                 av_llim=0., return_est=False):
+def grid_search2(
+    r2,
+    Alambda,
+    test_sed_obs,
+    test_sed_obs_err=None,
+    test_vpi_obs=None,
+    test_vpi_obs_err=None,
+    Lvpi=1.0,
+    Lprior=1.0,
+    sed_err_typical=0.1,
+    cost_order=2,
+    av_llim=0.0,
+    return_est=False,
+):
     """
     when p = [T, G, Av, DM],
     given a set of SED,
@@ -109,7 +182,13 @@ def grid_search2(r2, Alambda,
 
     n_good_band = np.sum(ind_good_band)
     if n_good_band < 5:
-        return [np.ones((4,),)*np.nan for i in range(3)]
+        return [
+            np.ones(
+                (4,),
+            )
+            * np.nan
+            for i in range(3)
+        ]
 
     # lnprior
     lnprior = r2.values[:, -1]
@@ -123,16 +202,22 @@ def grid_search2(r2, Alambda,
     sed_obs = test_sed_obs[ind_good_band]
     # observed SED error
     if sed_err_typical is not None:
-        sed_obs_err = np.ones_like(sed_obs, float)*sed_err_typical
+        sed_obs_err = np.ones_like(sed_obs, float) * sed_err_typical
     else:
         sed_obs_err = test_sed_obs_err[ind_good_band]
 
     # WLS to guess Av and DM
     av_est, dm_est = guess_avdm_wls(
-        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band])
+        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band]
+    )
 
     # cost(SED)
-    res_sed = sed_mod + av_est.reshape(-1, 1) * Alambda[ind_good_band] + dm_est.reshape(-1, 1) - sed_obs
+    res_sed = (
+        sed_mod
+        + av_est.reshape(-1, 1) * Alambda[ind_good_band]
+        + dm_est.reshape(-1, 1)
+        - sed_obs
+    )
     if sed_err_typical is not None:
         cost_sed = np.nansum(np.abs(res_sed / sed_err_typical) ** cost_order, axis=1)
     else:
@@ -142,9 +227,9 @@ def grid_search2(r2, Alambda,
     # cost(VPI)
     if test_vpi_obs is not None and test_vpi_obs_err is not None and Lvpi > 0:
         vpi_mod = 10 ** (2 - 0.2 * dm_est)
-        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.
+        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.0
         if np.all(np.isfinite(cost_vpi)):
-            lnprob -= 0.5*cost_vpi
+            lnprob -= 0.5 * cost_vpi
 
     # lnprob = cost(SED) + cost(VPI) + prior
     if Lprior > 0:
@@ -185,13 +270,13 @@ def grid_search2(r2, Alambda,
 
 
 def model_sed_abs(x, r):
-    """ interpolate with r(Regli) at position x """
+    """interpolate with r(Regli) at position x"""
     test_tgm = x[:2]
     return r(test_tgm)[:-1]
 
 
 def initial_guess(x, r, Alambda, sed_obs, sed_obs_err):
-    """ initial guess of Av and DM with OLS method """
+    """initial guess of Av and DM with OLS method"""
     # select good bands
     ind_good_band = np.isfinite(sed_obs) & (sed_obs_err > 0)
     sed_mod = model_sed_abs(x, r).reshape(1, -1)[:, ind_good_band]
@@ -208,7 +293,7 @@ def initial_guess(x, r, Alambda, sed_obs, sed_obs_err):
 
 
 def guess_avdm_ols(sed_mod, sed_obs, Alambda):
-    """ matrix form OLS solution for Av and DM """
+    """matrix form OLS solution for Av and DM"""
     sed_mod = np.array(sed_mod)
     sed_obs = np.array(sed_obs)
 
@@ -220,14 +305,13 @@ def guess_avdm_ols(sed_mod, sed_obs, Alambda):
     X = np.array([Alambda, np.ones_like(Alambda)]).T
     y = np.matrix((sed_obs - sed_mod).T)
     # av_ols, dm_ols = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T,X)),X.T),Y))
-    av_est, dm_est = np.array(
-        np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), y))
+    av_est, dm_est = np.array(np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T), y))
 
     return av_est, dm_est
 
 
 def guess_avdm_wls(sed_mod, sed_obs, sed_obs_err, Alambda):
-    """ matrix form OLS solution for Av and DM """
+    """matrix form OLS solution for Av and DM"""
     sed_mod = np.array(sed_mod)
     sed_obs = np.array(sed_obs)
     sed_obs_err = np.array(sed_obs_err)
@@ -245,8 +329,10 @@ def guess_avdm_wls(sed_mod, sed_obs, sed_obs_err, Alambda):
     return av_est, dm_est
 
 
-def costfun(x, r, p_bounds, Alambda, sed_obs, sed_obs_err, vpi_obs, vpi_obs_err, Lvpi, Lprior):
-    """ cost function of MCMC
+def costfun(
+    x, r, p_bounds, Alambda, sed_obs, sed_obs_err, vpi_obs, vpi_obs_err, Lvpi, Lprior
+):
+    """cost function of MCMC
 
     Returns
     -------
@@ -278,45 +364,46 @@ def costfun(x, r, p_bounds, Alambda, sed_obs, sed_obs_err, vpi_obs, vpi_obs_err,
     vpi_mod = 10 ** (2 - 0.2 * test_dm)  # mas
 
     # chi2_sed
-    chi2_sed = np.nansum(
-        (((sed_obs - sed_mod) / sed_obs_err) ** 2.)[ind_good_band])
+    chi2_sed = np.nansum((((sed_obs - sed_mod) / sed_obs_err) ** 2.0)[ind_good_band])
     if not np.isfinite(chi2_sed):
         return -np.inf
 
     # include vpi
     if Lvpi > 0:
         # eval chi2_vpi
-        chi2_vpi = ((vpi_obs - vpi_mod) / vpi_obs_err) ** 2.
+        chi2_vpi = ((vpi_obs - vpi_mod) / vpi_obs_err) ** 2.0
 
         if np.isfinite(chi2_vpi):
-            return -0.5 * (chi2_sed + chi2_vpi) + lnprior*Lprior
+            return -0.5 * (chi2_sed + chi2_vpi) + lnprior * Lprior
         else:
-            return -0.5 * chi2_sed + lnprior*Lprior
+            return -0.5 * chi2_sed + lnprior * Lprior
     else:
-        return -0.5 * chi2_sed + lnprior*Lprior
+        return -0.5 * chi2_sed + lnprior * Lprior
 
 
 def mcostfun(*args):
-    """ minus of costfun """
+    """minus of costfun"""
     return -costfun(*args)
 
 
 def generate_p(p0, pstd, shrink=0.5):
-    """ generate (normal) random p """
+    """generate (normal) random p"""
     return p0 + shrink * pstd * np.random.randn(len(p0))
 
 
 def check_bounds(p, p_bounds=None):
-    """ check bounds """
+    """check bounds"""
     if p_bounds is not None:
         p_bounds = np.array(p_bounds)
-        if np.any(np.array(p) <= p_bounds[:, 0]) or np.any(np.array(p) >= p_bounds[:, 1]):
+        if np.any(np.array(p) <= p_bounds[:, 0]) or np.any(
+            np.array(p) >= p_bounds[:, 1]
+        ):
             return False
     return True
 
 
 def random_p(sampler, nloopmax=1000, method="mle", costfun=None, args=()):
-    """ given a sampler, generate new random p """
+    """given a sampler, generate new random p"""
     n_walkers, _, n_dim = sampler.chain.shape
 
     # MLE p
@@ -368,12 +455,23 @@ def random_p(sampler, nloopmax=1000, method="mle", costfun=None, args=()):
 #
 #     return np.array([av_ols, dm_ols])
 
-def general_search(params, sed_mod, lnprior,
-                   Alambda,
-                   test_sed_obs, test_sed_obs_err=None,
-                   test_vpi_obs=None, test_vpi_obs_err=None,
-                   Lvpi=1.0, Lprior=1.0, sed_err_typical=0.1, cost_order=2,
-                   av_llim=0., debug=False):
+
+def general_search(
+    params,
+    sed_mod,
+    lnprior,
+    Alambda,
+    test_sed_obs,
+    test_sed_obs_err=None,
+    test_vpi_obs=None,
+    test_vpi_obs_err=None,
+    Lvpi=1.0,
+    Lprior=1.0,
+    sed_err_typical=0.1,
+    cost_order=2,
+    av_llim=0.0,
+    debug=False,
+):
     """
     when p = [T, G, Av, DM],
     given a set of SED,
@@ -389,7 +487,13 @@ def general_search(params, sed_mod, lnprior,
 
     n_good_band = np.sum(ind_good_band)
     if n_good_band < 5:
-        return [np.ones((4,), ) * np.nan for i in range(3)]
+        return [
+            np.ones(
+                (4,),
+            )
+            * np.nan
+            for i in range(3)
+        ]
 
     # lnprior
     # lnprior = r2.values[:, -1]
@@ -411,24 +515,27 @@ def general_search(params, sed_mod, lnprior,
 
     # WLS to guess Av and DM
     av_est, dm_est = guess_avdm_wls(
-        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band])
+        sed_mod, sed_obs, sed_obs_err, Alambda[ind_good_band]
+    )
 
     # cost(SED)
-    res_sed = sed_mod + av_est.reshape(-1, 1) * Alambda[
-        ind_good_band] + dm_est.reshape(-1, 1) - sed_obs
+    res_sed = (
+        sed_mod
+        + av_est.reshape(-1, 1) * Alambda[ind_good_band]
+        + dm_est.reshape(-1, 1)
+        - sed_obs
+    )
 
     if sed_err_typical is not None:
-        cost_sed = np.nansum(np.abs(res_sed / sed_err_typical) ** cost_order,
-                             axis=1)
+        cost_sed = np.nansum(np.abs(res_sed / sed_err_typical) ** cost_order, axis=1)
     else:
-        cost_sed = np.nansum(np.abs(res_sed / sed_obs_err) ** cost_order,
-                             axis=1)
+        cost_sed = np.nansum(np.abs(res_sed / sed_obs_err) ** cost_order, axis=1)
     lnprob = -0.5 * cost_sed
 
     # cost(VPI)
     if test_vpi_obs is not None and test_vpi_obs_err is not None and Lvpi > 0:
         vpi_mod = 10 ** (2 - 0.2 * dm_est)
-        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.
+        cost_vpi = ((vpi_mod - test_vpi_obs) / test_vpi_obs_err) ** 2.0
         if np.all(np.isfinite(cost_vpi)):
             lnprob -= 0.5 * cost_vpi
 
@@ -465,8 +572,8 @@ def general_search(params, sed_mod, lnprior,
     p_mean = np.hstack([p_mean, av_mean, dm_mean])
     p_std = np.hstack([p_std, av_std, dm_std])
 
-    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.))
-    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed ** 2., axis=1)))
+    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.0))
+    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed**2.0, axis=1)))
 
     return dict(
         p_mle=p_mle,
@@ -475,15 +582,25 @@ def general_search(params, sed_mod, lnprior,
         rmsmle=rms_sed_mle,
         rmsmin=rms_sed_min,
         ind_mle=ind_mle,
-        n_good=np.sum(ind_good_band)
+        n_good=np.sum(ind_good_band),
     )
 
 
-def general_search_v2(params, sed_mod, lnprior, Alambda,
-                      sed_obs, sed_obs_err=0.1,
-                      vpi_obs=None, vpi_obs_err=None,
-                      Lvpi=1.0, Lprior=1.0,
-                      cost_order=2, av_llim=-0.001, debug=False):
+def general_search_v2(
+    params,
+    sed_mod,
+    lnprior,
+    Alambda,
+    sed_obs,
+    sed_obs_err=0.1,
+    vpi_obs=None,
+    vpi_obs_err=None,
+    Lvpi=1.0,
+    Lprior=1.0,
+    cost_order=2,
+    av_llim=-0.001,
+    debug=False,
+):
     """
     when p = [teff, logg, [M/H], Av, DM], theta = [teff, logg, [M/H]],
     given a set of SED,
@@ -503,7 +620,13 @@ def general_search_v2(params, sed_mod, lnprior, Alambda,
     if n_good_band < 4:
         # n_good_band = 3: unique solution
         # so n_good_band should be at least 4
-        return [np.ones((4,), ) * np.nan for i in range(3)]
+        return [
+            np.ones(
+                (4,),
+            )
+            * np.nan
+            for i in range(3)
+        ]
 
     # use a subset of bands
     sed_mod_select = sed_mod[:, ind_good_band]
@@ -515,18 +638,24 @@ def general_search_v2(params, sed_mod, lnprior, Alambda,
 
     # WLS to guess Av and DM
     av_est, dm_est = guess_avdm_wls(
-        sed_mod_select, sed_obs_select, sed_obs_err_select, Alambda_select)
+        sed_mod_select, sed_obs_select, sed_obs_err_select, Alambda_select
+    )
 
     # cost(SED)
-    res_sed = sed_mod_select + av_est.reshape(-1, 1) * Alambda_select \
-        + dm_est.reshape(-1, 1) - sed_obs_select
+    res_sed = (
+        sed_mod_select
+        + av_est.reshape(-1, 1) * Alambda_select
+        + dm_est.reshape(-1, 1)
+        - sed_obs_select
+    )
     lnprob_sed = -0.5 * np.nansum(
-        np.abs(res_sed / sed_obs_err_select) ** cost_order, axis=1)
+        np.abs(res_sed / sed_obs_err_select) ** cost_order, axis=1
+    )
 
     # cost(VPI)
     if vpi_obs is not None and vpi_obs_err is not None and Lvpi > 0:
         vpi_mod = 10 ** (2 - 0.2 * dm_est)
-        lnprob_vpi = -0.5 * ((vpi_mod - vpi_obs) / vpi_obs_err) ** 2.
+        lnprob_vpi = -0.5 * ((vpi_mod - vpi_obs) / vpi_obs_err) ** 2.0
     else:
         lnprob_vpi = np.zeros((n_mod,), np.float)
     lnprob_vpi = np.where(np.isfinite(lnprob_vpi), lnprob_vpi, 0) * Lvpi
@@ -543,12 +672,14 @@ def general_search_v2(params, sed_mod, lnprior, Alambda,
 
     # for debugging the code
     if debug:
-        return dict(params=params,
-                    av_est=av_est,
-                    dm_est=dm_est,
-                    lnprob_sed=lnprob_sed,
-                    lnprob_vpi=lnprob_vpi,
-                    lnprior=lnprior)
+        return dict(
+            params=params,
+            av_est=av_est,
+            dm_est=dm_est,
+            lnprob_sed=lnprob_sed,
+            lnprob_vpi=lnprob_vpi,
+            lnprior=lnprior,
+        )
 
     # normalization
     post = np.exp(lnpost)
@@ -564,13 +695,13 @@ def general_search_v2(params, sed_mod, lnprior, Alambda,
     L1_dm = np.sum(dm_est * post)
     L1_p = np.sum(params * post.reshape(-1, 1), axis=0)
 
-    L2_av = np.sum(av_est ** 2 * post)
-    L2_dm = np.sum(dm_est ** 2 * post)
-    L2_p = np.sum(params ** 2 * post.reshape(-1, 1), axis=0)
+    L2_av = np.sum(av_est**2 * post)
+    L2_dm = np.sum(dm_est**2 * post)
+    L2_p = np.sum(params**2 * post.reshape(-1, 1), axis=0)
 
-    sigma_av = np.sqrt(L2_av / L0 - L1_av ** 2 / L0 ** 2)
-    sigma_dm = np.sqrt(L2_dm / L0 - L1_dm ** 2 / L0 ** 2)
-    sigma_p = np.sqrt(L2_p / L0 - L1_p ** 2 / L0 ** 2)
+    sigma_av = np.sqrt(L2_av / L0 - L1_av**2 / L0**2)
+    sigma_dm = np.sqrt(L2_dm / L0 - L1_dm**2 / L0**2)
+    sigma_p = np.sqrt(L2_p / L0 - L1_p**2 / L0**2)
 
     # MLE model
     ind_mle = np.argmax(lnprob_sed + lnprob_vpi)
@@ -579,16 +710,18 @@ def general_search_v2(params, sed_mod, lnprior, Alambda,
     p_mle = params[ind_mle]
 
     p_mle = np.hstack([p_mle, av_mle, dm_mle])
-    p_mean = np.hstack([L1_p/L0, L1_av/L0, L1_dm/L0])
+    p_mean = np.hstack([L1_p / L0, L1_av / L0, L1_dm / L0])
     p_err = np.hstack([sigma_p, sigma_av, sigma_dm])
 
-    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.))
-    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed ** 2., axis=1)))
+    rms_sed_mle = np.sqrt(np.nanmean(res_sed[ind_mle] ** 2.0))
+    rms_sed_min = np.min(np.sqrt(np.nanmean(res_sed**2.0, axis=1)))
 
-    return dict(p_mle=p_mle,
-                p_mean=p_mean,
-                p_err=p_err,
-                rmsmle=rms_sed_mle,
-                rmsmin=rms_sed_min,
-                ind_mle=ind_mle,
-                n_good=np.sum(ind_good_band))
+    return dict(
+        p_mle=p_mle,
+        p_mean=p_mean,
+        p_err=p_err,
+        rmsmle=rms_sed_mle,
+        rmsmin=rms_sed_min,
+        ind_mle=ind_mle,
+        n_good=np.sum(ind_good_band),
+    )

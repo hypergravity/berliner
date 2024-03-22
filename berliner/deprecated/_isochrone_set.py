@@ -225,7 +225,7 @@ class IsochroneGrid:
             raise ValueError("@IsochroneGrid: delta is not ready!")
         else:
             if func_prior is None:
-                from berliner.utils.imf import imf
+                from berliner.physics.imf import imf
 
                 def func_prior(mhini, lgage, lgmini):
                     return imf(10**lgmini, kind="salpeter")
