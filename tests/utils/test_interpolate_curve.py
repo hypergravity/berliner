@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from berliner.utils.interpolate_curves import generate_3darc, interpolate_curve
+from berliner.interpolate.interpolate_curves import generate_3darc, interpolate_curve
 
 """
 Test case 1: arcs

@@ -2,7 +2,7 @@ import numpy as np
 
 # Define two vectors
 a = np.array([1, 2, 3])
-b = np.array([4, 5, 6])
+b = np.array([-1, -2, -3])
 
 # Calculate the length of the vectors
 norm_a = np.linalg.norm(a)
