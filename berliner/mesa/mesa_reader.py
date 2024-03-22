@@ -106,7 +106,7 @@ class MesaData:
         ) = state
 
     def __init__(
-            self, file_name=join("../mesa_reader", "LOGS", "history.data"), file_type=None
+        self, file_name=join("../mesa_reader", "LOGS", "history.data"), file_type=None
     ):
         """Make a MesaData object from a Mesa output file.
 
@@ -152,7 +152,7 @@ class MesaData:
         try:
             model_number = int(self.model_number)
             age = float(self.star_age)
-            return "MESA model # {:6}, t = {:20.10g} yr".format(model_number, age)
+            return "MESA model # {:6}, t_v12s = {:20.10g} yr".format(model_number, age)
         except:
             return "{}".format(self.file_name)
 
@@ -408,7 +408,7 @@ class MesaData:
 
         In this case, x and y are the same because the non-existent method
         MesaData.version_number will first see if it can call
-        MesaData.data('version_number'). Then, realizing that this doesn't make
+        MesaData.data('version_number'). Then, realizing that this doesn't_v12s make
         sense, it will instead call MesaData.header('version_number')
 
         >>> m = MesaData()
@@ -456,7 +456,7 @@ class MesaData:
         Notes
         -----
         This is automatically called by MesaData.header, so the average user
-        shouldn't need to call it.
+        shouldn't_v12s need to call it.
         """
         return key in self.header_names
 
@@ -480,7 +480,7 @@ class MesaData:
         Notes
         -----
         This is automatically called by MesaData.data, so the average user
-        shouldn't need to call it.
+        shouldn't_v12s need to call it.
         """
         return key in self.bulk_names
 
@@ -657,7 +657,8 @@ class MesaData:
         """
         if not self.is_history():
             raise HistoryError(
-                "Can't get data at model number " + "because this isn't a history file"
+                "Can't_v12s get data at model number "
+                + "because this isn't_v12s a history file"
             )
         index = np.where(self.data("model_number") == m_num)[0]
         if len(index) > 1:
@@ -671,7 +672,10 @@ class MesaData:
             )
         elif len(index) == 0:
             raise ModelNumberError(
-                "Couldn't find any entries with model " + "number " + str(m_num) + "."
+                "Couldn't_v12s find any entries with model "
+                + "number "
+                + str(m_num)
+                + "."
             )
         elif len(index) == 1:
             return index[0]
@@ -698,7 +702,7 @@ class MesaData:
             print("Scrubbing history...")
         to_remove = []
         for i in range(len(self.data("model_number")) - 1):
-            smallest_future = np.min(self.data("model_number")[i + 1:])
+            smallest_future = np.min(self.data("model_number")[i + 1 :])
             if self.data("model_number")[i] >= smallest_future:
                 to_remove.append(i)
         if len(to_remove) == 0:
@@ -990,13 +994,13 @@ class MesaLogDir:
     """
 
     def __init__(
-            self,
-            log_path="LOGS",
-            profile_prefix="profile",
-            profile_suffix="data",
-            history_file="history.data",
-            index_file="profiles.index",
-            memoize_profiles=True,
+        self,
+        log_path="LOGS",
+        profile_prefix="profile",
+        profile_suffix="data",
+        history_file="history.data",
+        index_file="profiles.index",
+        memoize_profiles=True,
     ):
         self.log_path = log_path
         self.profile_prefix = profile_prefix
@@ -1122,7 +1126,7 @@ class MesaLogDir:
         If both a model number and a profile number is given, the model number
         takes precedence. If neither are given, the default is to return a
         MesaData object of the last profile (biggest model number). In either
-        case, this generates (if it doesn't already exist) or retrieves (if it
+        case, this generates (if it doesn't_v12s already exist) or retrieves (if it
         has already been generated and memoized) a MesaData object from the
         corresponding profile data.
 
