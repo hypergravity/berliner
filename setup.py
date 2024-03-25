@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="berliner",
-    version="0.2.1",
+    version="0.2.2",
     author="Bo Zhang",
     author_email="bozhang@nao.cas.cn",
     description="Tools for stellar tracks & isochrones.",  # short description
@@ -31,5 +31,5 @@ setuptools.setup(
     #     "berliner": ["data/*"],
     # },
     install_requires=requirements,
-    python_requires=">=3.11",
+    python_requires=">=3.7",
 )
